@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-15 18:31:20 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-15 20:05:53 holzplatten"
  *
  *       File:         gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -243,6 +243,72 @@ static int gnordofs_read(const char *path, char *buf, size_t size, off_t offset,
   return count;
 }
 
+static int gnordofs_unlink(const char *path)
+{
+  char *dirc, *basec, *bname, *dname;
+  inode_t *idir, *inode;
+  dir_entry_t *de;
+
+  DEBUG(">>>>>>>>>> unlink(path = %s)\n", path);
+
+  dirc = strdup(path);
+  basec = strdup(path);
+
+  dname = dirname(dirc);
+  bname = basename(basec);
+
+  idir = namei(dev, sb, dname);
+  if (!idir)
+    {
+      free(dirc);
+      free(basec);
+
+      return -1;
+    }
+
+  de = get_dir_entry_by_name(dev, sb, idir, bname);
+  if (!de)
+    {
+      free(idir);
+      free(dirc);
+      free(basec);
+
+      return -1;
+    }
+
+  if (del_dir_entry_by_name(dev, sb, idir, bname) < 0)
+    {
+      free(de);
+      free(idir);
+      free(dirc);
+      free(basec);
+
+      return -1;
+    }
+
+  iput(dev, sb, idir);
+
+  free(idir);
+  free(dirc);
+  free(basec);
+
+  inode = iget(dev, sb, de->inode);
+  if (!inode)
+    {
+      free(de);
+      return -1;
+    }
+
+  --(inode->link_counter);
+  iput(dev, sb, inode);
+
+  free(inode);
+  free(de);
+
+  return 0;
+
+}
+
 static int gnordofs_write(const char *path, const char *buf, size_t size, off_t offset,
                           struct fuse_file_info *fi __attribute__((unused)))
 {
@@ -264,8 +330,8 @@ static int gnordofs_write(const char *path, const char *buf, size_t size, off_t 
   count = do_write(dev, sb, inode, buf, size);
 
   /* Actualizar campo de tamaño si es necesario. */
-  if (size + offset > inode->size)
-    inode->size += size - offset;
+  if (offset + size > inode->size)
+    inode->size = offset + size;
 
   iput(dev, sb, inode);
 
@@ -287,6 +353,7 @@ static struct fuse_operations oper = {
   .release      = gnordofs_release,
   //  .setattr      = gnordofs_setattr,
   .truncate     = gnordofs_truncate,
+  .unlink       = gnordofs_unlink,
   .write        = gnordofs_write
 };
 

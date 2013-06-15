@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-15 16:56:07 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-15 20:05:33 holzplatten"
  *
  *       File:         dir.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -89,6 +89,74 @@ int add_dir_entry(int dev, superblock_t *sb, inode_t *dir_inode, inode_t *entry_
 
 
 /*-
+ *      Routine:       del_dir_entry_by_name
+ *
+ *      Purpose:
+ *              Elimina una entrada en un directorio según su nombre.
+ *              NOTA: Decrementa el tamaño del directorio pero NO lo salva a disco.
+ *              NOTA: NO decrementa el número de enlaces al inodo referenciado.
+ *      Conditions:
+ *              dev debe corresponder a un gnordofs válido.
+ *              sb debe apuntar a un superblock válido.
+ *              inode debe ser un inodo de directorio válido.
+ *      Returns:
+ *              -1 on error.
+ *
+ */
+int del_dir_entry_by_name(int dev, superblock_t *sb, inode_t *inode,
+                          const char * const entry_name)
+{
+  int i, found;
+  dir_entry_t de;
+
+  DEBUG_VERBOSE(">> del_dir_entry_by_name(entry_name = %s)\n", entry_name);
+
+  if (inode->type != I_DIR)
+    {
+      DEBUG_VERBOSE("no es un directorio!\n");
+      return -1;
+    }
+
+  do_lseek(dev, sb, inode, 0, SEEK_SET);
+  i = 0;
+  do {
+    DEBUG_VERBOSE(">> del_dir_entry >> i=%d\n", i);
+    if (do_read(dev, sb, inode, (void *) &de, sizeof(dir_entry_t))
+                                                              < sizeof(dir_entry_t))
+      {
+        DEBUG_VERBOSE("Error leyendo entrada número %d del I_DIR %d", i, inode->n);
+        return -1;
+      }
+    
+    /* Las entradas libres no cuentan como el espacio ocupado. */
+    if (de.inode == -1)
+      continue;
+    ++i;
+
+    found = strcmp(de.name, entry_name) == 0;
+
+  } while (!found &&  i*sizeof(struct dir_entry) < inode->size);
+
+  /* Fuera de rango. */
+  if (!found)
+    return -1;
+
+  de.inode = -1;
+  /* Un pasito pa'trás... */
+  do_lseek(dev, sb, inode, -sizeof(dir_entry_t), SEEK_CUR);
+  if (do_write(dev, sb, inode, (void *) &de, sizeof(dir_entry_t))
+                                                           < sizeof(dir_entry_t))
+    return -1;
+
+  inode->size -= sizeof(dir_entry_t);
+  
+  return 0;
+}
+
+
+
+
+/*-
  *      Routine:       get_dir_entry
  *
  *      Purpose:
@@ -107,7 +175,7 @@ dir_entry_t * get_dir_entry(int dev, superblock_t *sb, inode_t *inode, int n)
   dir_entry_t de = { -1, "FIN" };
   dir_entry_t *de_n;
 
-  DEBUG_VERBOSE(">> get_dir_entry(\n");
+  DEBUG_VERBOSE(">> get_dir_entry\n");
 
   if (inode->type != I_DIR)
     {
@@ -165,7 +233,7 @@ dir_entry_t * get_dir_entry_by_name(int dev, superblock_t *sb, inode_t *inode, c
   dir_entry_t de = { -1, "FIN" };
   dir_entry_t *de_n;
 
-  DEBUG_VERBOSE(">> get_dir_entry(\n");
+  DEBUG_VERBOSE(">> get_dir_entry_by_name\n");
 
   if (inode->type != I_DIR)
     {
