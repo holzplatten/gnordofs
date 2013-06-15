@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-15 16:14:46 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-16 00:55:49 holzplatten"
  *
  *       File:         fs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -49,6 +49,8 @@ int do_read(int dev, superblock_t *sb, inode_t *inode,
 
       /* Calcular bloque absoluto (todo el fs). */
       absolute_blk = inode_getblk(inode, blk);
+      if (absolute_blk == -1)
+        return -1;
       
       /* Si el bloque no es el mismo que el de la última lectura, leerlo. */
       if (absolute_blk != old_blk)
@@ -58,6 +60,9 @@ int do_read(int dev, superblock_t *sb, inode_t *inode,
             free(datablock);
 
           datablock = getblk(dev, sb, absolute_blk);
+
+          if (!datablock)
+            return count;
         }
 
       /* Copiar byte al buffer de salida. */
@@ -158,6 +163,8 @@ int do_write(int dev, superblock_t *sb, inode_t *inode,
 
       /* Calcular bloque absoluto (todo el fs). */
       absolute_blk = inode_getblk(inode, blk);
+      if (absolute_blk == -1)
+        return -1;
       DEBUG_VERBOSE(">> do_write >> absolute_blk = %d\n", absolute_blk);
 
       /* Si es un bloque no mapeado todavía, reservar y continuar. */
@@ -166,7 +173,7 @@ int do_write(int dev, superblock_t *sb, inode_t *inode,
           DEBUG_VERBOSE("do_write -> absolute_blk no mapeado aún\n", absolute_blk);
           absolute_blk = inode_allocblk(dev, sb, inode, blk);
           DEBUG_VERBOSE("do_write -> mapeado bloque %d\n", absolute_blk);
-          if (absolute_blk < 0)
+          if (absolute_blk == -1)
             return -1;
         }
       
@@ -182,6 +189,9 @@ int do_write(int dev, superblock_t *sb, inode_t *inode,
           old_blk = absolute_blk;
           DEBUG_VERBOSE("getblk con absolute_blk=%d\n", absolute_blk);
           datablock = getblk(dev, sb, absolute_blk);
+
+          if (!datablock)
+            return count;
         }
 
       /* Escribir byte en el bloque de marras. */
