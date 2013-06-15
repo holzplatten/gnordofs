@@ -1,12 +1,12 @@
-/* -*- mode: C -*- Time-stamp: "2013-05-08 00:03:47 holzplatten"
-   *
-   *       File:         superblock.c
-   *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
-   *       Date:         Sat May  4 11:25:26 2013
-   *
-   *       Funciones de manejo de superbloque.
-   *
-   */
+/* -*- mode: C -*- Time-stamp: "2013-06-10 22:41:14 holzplatten"
+ *
+ *       File:         superblock.c
+ *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
+ *       Date:         Sat May  4 11:25:26 2013
+ *
+ *       Funciones de manejo de superbloque.
+ *
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,18 +20,18 @@
 
 
 /*-
-  *      Routine:       superblock_write
-  *
-  *      Purpose:
-  *              Escribe a disco un superbloque.
-  *      Conditions:
-  *              fd debe corresponder a un fichero abierto para escritura.
-  *              sb debe apuntar a un superblock_t válido.
-  *      Returns:
-  *              0 on success.
-  *              -1 on error.
-  *
-  */
+ *      Routine:       superblock_write
+ *
+ *      Purpose:
+ *              Escribe a disco un superbloque.
+ *      Conditions:
+ *              fd debe corresponder a un fichero abierto para escritura.
+ *              sb debe apuntar a un superblock_t válido.
+ *      Returns:
+ *              0 on success.
+ *              -1 on error.
+ *
+ */
 int
 superblock_write(int fd, const superblock_t * const sb)
 {
@@ -52,17 +52,17 @@ superblock_write(int fd, const superblock_t * const sb)
 
 
 /*-
-  *      Routine:       superblock_read
-  *
-  *      Purpose:
-  *              Lee un superbloque de disco.
-  *      Conditions:
-  *              fd debe corresponder a un fichero abierto para lectura.
-  *      Returns:
-  *              Un puntero a un superblock_t.
-  *              NULL on error.
-  *
-  */
+ *      Routine:       superblock_read
+ *
+ *      Purpose:
+ *              Lee un superbloque de disco.
+ *      Conditions:
+ *              fd debe corresponder a un fichero abierto para lectura.
+ *      Returns:
+ *              Un puntero a un superblock_t.
+ *              NULL on error.
+ *
+ */
 superblock_t *
 superblock_read(int fd)
 {
@@ -103,18 +103,19 @@ superblock_read(int fd)
 
 
 /*-
-  *      Routine:       superblock_init
-  *
-  *      Purpose:
-  *              Genera un nuevo superbloque para un sistema
-  *              de archivos gnordofs de tamaño size.
-  *      Conditions:
-  *              size debe ser mayor que [FIXME] sizeof(struct persistent_superblock) + n_inodos*inodesize + n_inodos*blocksize
-  *      Returns:
-  *              Un puntero a un superblock_t.
-  *              NULL on error.
-  *
-  */
+ *      Routine:       superblock_init
+ *
+ *      Purpose:
+ *              Genera un nuevo superbloque para un sistema
+ *              de archivos gnordofs de tamaño size.
+ *      Conditions:
+ *              size debe ser mayor que [FIXME] sizeof(struct persistent_superblock) +
+ *                                              n_inodos*inodesize + n_inodos*blocksize
+ *      Returns:
+ *              Un puntero a un superblock_t.
+ *              NULL on error.
+ *
+ */
 superblock_t *
 superblock_init(unsigned long size)
 {
@@ -148,7 +149,7 @@ superblock_init(unsigned long size)
     {
       sb->free_block_list[FREE_BLOCK_LIST_SIZE-i] = i-1;
     }
-  sb->free_block_index = FREE_BLOCK_LIST_SIZE -1;
+  sb->free_block_index = FREE_BLOCK_LIST_SIZE-1;
 
   sb->inode_count = inode_count;
   sb->free_inodes = inode_count;
@@ -158,7 +159,7 @@ superblock_init(unsigned long size)
     {
       sb->free_inode_list[FREE_INODE_LIST_SIZE-i] = i-1;
     }
-  sb->free_inode_index = FREE_INODE_LIST_SIZE -1;
+  sb->free_inode_index = FREE_INODE_LIST_SIZE;    // Sí, sin el -1.
 
   sb->inode_zone_base = sizeof(struct persistent_superblock);
   sb->block_zone_base = sizeof(struct persistent_superblock)
@@ -174,16 +175,16 @@ superblock_init(unsigned long size)
 
 
 /*-
-  *      Routine:      superblock_print
-  *
-  *      Purpose:
-  *              Muestra en pantalla un volcado del superbloque.
-  *      Conditions:
-  *              sb debe apuntar a un superbloque válido.
-  *      Returns:
-  *              none
-  *
-  */
+ *      Routine:      superblock_print
+ *
+ *      Purpose:
+ *              Muestra en pantalla un volcado del superbloque.
+ *      Conditions:
+ *              sb debe apuntar a un superbloque válido.
+ *      Returns:
+ *              none
+ *
+ */
 void
 superblock_print_dump(const superblock_t * const sb)
 {

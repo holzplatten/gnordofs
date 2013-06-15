@@ -1,5 +1,5 @@
-#ifndef _BLOCK_H_
-#define _BLOCK_H_
+#ifndef __BLOCK_H__
+#define __BLOCK_H__
 
 #include <superblock.h>
 
@@ -9,6 +9,11 @@ struct block
 };
 
 typedef struct block block_t;
+
+int allocblk(int dev, superblock_t * const sb);
+block_t * getblk(int dev, superblock_t *sb, int n);
+int writeblk(int dev, superblock_t *sb, int n, block_t *datablock);
+
 
 int free_block_list_init(int fd, const superblock_t * const sb);
 

@@ -1,5 +1,5 @@
-#ifndef _SUPERBLOCK_H_
-#define _SUPERBLOCK_H_
+#ifndef __SUPERBLOCK_H__
+#define __SUPERBLOCK_H__
 
 /* 
  * Estructura del superbloque en disco:
@@ -39,11 +39,11 @@
   unsigned long free_inode_list[FREE_INODE_LIST_SIZE];                  \
   unsigned short free_inode_index;                                      \
                                                                         \
+  unsigned long first_inode;                                            \
   unsigned long inode_zone_base;                                        \
   unsigned long block_zone_base; unsigned short magic2;
   
-struct superblock
-{
+struct superblock {
   SUPERBLOCK_PERSISTENT_DATA
   
   char lock;	/* ¿Mejor usar un pthread_spinlock_t? */
@@ -52,8 +52,7 @@ struct superblock
 
 typedef struct superblock superblock_t;
 
-struct persistent_superblock
-{
+struct persistent_superblock {
   SUPERBLOCK_PERSISTENT_DATA
 };
 

@@ -1,19 +1,143 @@
+/* -*- mode: C -*- Time-stamp: "2013-06-11 00:28:38 holzplatten"
+ *
+ *       File:         block.c
+ *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
+ *       Date:         Sun Jun  1 19:31:18 2013
+ *
+ *       Manejo de los bloques de bajo nivel.
+ *
+ */
+
+
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include <block.h>
 #include <inode.h>
 #include <superblock.h>
 
-/* 
-   alloc
-   free
 
-   getblk
-   brelse
-   bread
-   bwrite
-*/
+
+
+/*-
+ *      Routine:       allocblk
+ *
+ *      Purpose:
+ *              Reserva un nuevo bloque de datos.
+ *      Conditions:
+ *              dev debe corresponder a un gnordofs válido.
+ *              sb debe apuntar a un superblock válido.
+ *      Returns:
+ *              Un entero con el número de bloque absoluto.
+ *              -1 on error.
+ *
+ */
+int allocblk(int dev, superblock_t * const sb)
+{
+  int block;
+
+  block = sb->free_block_list[sb->free_block_index];
+
+  /* Si la lista parcial de bloques libres sólo contiene un bloque,
+     anotar ese número y cargar la lista con lo que haya en él. */
+  if (sb->free_block_index == 0)
+    {
+      block_t * buff;
+
+      buff = getblk(dev, sb, block);
+      memcpy(sb->free_block_list, buff, sizeof(sb->free_block_list));
+      sb->free_block_index = FREE_BLOCK_LIST_SIZE;
+    }
+
+  --(sb->free_block_index);
+
+  return block;
+}
+
+
+
+
+/*-
+ *      Routine:       getblk
+ *
+ *      Purpose:
+ *              Lee un bloque de datos de disco.
+ *      Conditions:
+ *              dev debe corresponder a un gnordofs válido.
+ *              sb debe apuntar a un superblock válido.
+ *              n debe ser un número de bloque no negativo y VÁLIDO.
+ *      Returns:
+ *              Un bloque de datos.
+ *              NULL on error.
+ *
+ */
+block_t * getblk(int dev, superblock_t *sb, int n)
+{
+  int offset;
+  block_t *datablock;
+
+  if (n<0)
+    return NULL;
+
+  offset = sb->block_zone_base + n * sizeof(struct block);
+
+  if (lseek(dev, offset, SEEK_SET) < 0)
+    return NULL;
+
+  datablock = malloc(sizeof(struct block));
+  if (datablock == NULL)
+    return NULL;
+
+  memset(datablock, 0, sizeof(struct block));
+
+  if (read(dev, datablock, sizeof(struct block)) < sizeof(struct block))
+    {
+      free(datablock);
+      return NULL;
+    }
+
+  return datablock;
+}
+
+
+
+
+/*-
+ *      Routine:       writeblk
+ *
+ *      Purpose:
+ *              Escribe un bloque de datos de disco.
+ *      Conditions:
+ *              dev debe corresponder a un gnordofs válido.
+ *              sb debe apuntar a un superblock válido.
+ *              n debe ser un número de bloque no negativo y VÁLIDO.
+ *              datablock debe apuntar a un block_t válido.
+ *      Returns:
+ *              -1 on error.
+ *
+ */
+int writeblk(int dev, superblock_t *sb, int n, block_t *datablock)
+{
+  int offset;
+
+  if (n<0 || datablock==NULL)
+    return -1;
+
+  offset = sb->block_zone_base + n * sizeof(struct block);
+
+  if (lseek(dev, offset, SEEK_SET) < 0)
+    return -1;
+
+  if (write(dev, datablock, sizeof(struct block)) < sizeof(struct block))
+    return -1;
+
+  return 0;
+}
+
+
+
 
 /*-
   *      Routine:       free_block_list_init
