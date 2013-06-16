@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-16 16:22:38 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-16 19:53:03 holzplatten"
  *
  *       File:         mkfs.gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -88,9 +88,8 @@ int main(int argc, char **argv)
   /* A partir de aquí se maneja casi como si estuviese inicializado. */
 
   /* Reservar el primer inodo libre, marcarlo como directorio,
-     añadir artifialmente las entradas . y .., salvarlo en disco
-     y hacer que first_directory del superbloque apunte a dicho
-     inodo.
+     añadir las entradas . y .., salvarlo en disco y hacer que
+     first_directory del superbloque apunte a dicho inodo.
   */
   rootdir = ialloc(dev, sb);
   // Modificar rootdir con entradas . y ..
@@ -98,6 +97,9 @@ int main(int argc, char **argv)
   add_dir_entry(dev, sb, rootdir, rootdir, ".");
   add_dir_entry(dev, sb, rootdir, rootdir, "..");
   iput(dev, sb, rootdir);
+
+  sb->first_inode = rootdir->n;
+  superblock_write(dev, sb);
 
   printf("rootdir->type = %d\n", rootdir->type);
   printf("rootdir->size = %d\n", rootdir->size);
@@ -116,7 +118,7 @@ int main(int argc, char **argv)
       printf("WTF?\n");
       exit(1);
     }
-  superblock_print_dump(sb);
+  superblock_print_dump(sb_dup);
   //print_free_block_list(dev, sb);
 
   free(sb);

@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-16 16:22:12 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-16 22:22:59 holzplatten"
  *
  *       File:         dir.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -53,8 +53,9 @@
  *              -1 on error.
  *
  */
-int add_dir_entry(int dev, superblock_t *sb, inode_t *dir_inode, inode_t *entry_inode,
-                  const char * const entry_name)
+int
+add_dir_entry(int dev, superblock_t *sb, inode_t *dir_inode, inode_t *entry_inode,
+              const char * const entry_name)
 {
   int i;
   dir_entry_t de;
@@ -100,8 +101,7 @@ int add_dir_entry(int dev, superblock_t *sb, inode_t *dir_inode, inode_t *entry_
     return -1;
 
   /* Ya sólo falta incrementar en 1 el número de enlaces del inodo apuntado por la
-     entrada que se acaba de insertar.
-  */
+     entrada que se acaba de insertar. */
   entry_inode->link_counter++;
   
   return 0;
@@ -125,8 +125,9 @@ int add_dir_entry(int dev, superblock_t *sb, inode_t *dir_inode, inode_t *entry_
  *              -1 on error.
  *
  */
-int del_dir_entry_by_name(int dev, superblock_t *sb, inode_t *inode,
-                          const char * const entry_name)
+int
+del_dir_entry_by_name(int dev, superblock_t *sb, inode_t *inode,
+                      const char * const entry_name)
 {
   int i, found;
   dir_entry_t de;
@@ -192,7 +193,8 @@ int del_dir_entry_by_name(int dev, superblock_t *sb, inode_t *inode,
  *              NULL on error.
  *
  */
-dir_entry_t * get_dir_entry(int dev, superblock_t *sb, inode_t *inode, int n)
+dir_entry_t *
+get_dir_entry(int dev, superblock_t *sb, inode_t *inode, int n)
 {
   int i;
   dir_entry_t de = { -1, "FIN" };
@@ -254,7 +256,8 @@ dir_entry_t * get_dir_entry(int dev, superblock_t *sb, inode_t *inode, int n)
  *              NULL on error.
  *
  */
-dir_entry_t * get_dir_entry_by_name(int dev, superblock_t *sb, inode_t *inode, char * name)
+dir_entry_t *
+get_dir_entry_by_name(int dev, superblock_t *sb, inode_t *inode, char * name)
 {
   int i, found;
   dir_entry_t de = { -1, "FIN" };

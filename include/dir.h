@@ -29,7 +29,7 @@ typedef struct dir_entry {
   unsigned char name[252];
 } dir_entry_t;
 
-#define DIR_MAX_ENTRIES 256
+#define DIR_MAX_ENTRIES 4*BLOCKS_PER_INODE
 
 int add_dir_entry(int dev, superblock_t *, inode_t *,
                   inode_t * entry_inode,

@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-16 16:22:44 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-16 23:02:04 holzplatten"
  *
  *       File:         superblock.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -65,6 +65,8 @@ superblock_write(int fd, const superblock_t * const sb)
   if (write(fd, sb, size) < size)
     return -1;
   
+  superblock_print_dump_debug(sb);
+
   return 0;
 }
 
@@ -149,14 +151,13 @@ superblock_init(unsigned long size)
 
   inode_count = calculate_inode_count(size);
   
-  // Coger tamaño. Restar superbloque e inodos.
+  /* Coger tamaño. Restar superbloque e inodos. */
   size -= sizeof(struct persistent_superblock);
   size -= inode_count * sizeof(inode_t);
   block_count = size / sizeof(block_t);
 
   /* Se garantiza que el número de bloques será múltiplo entero del tamaño de
-     la lista de bloques libres almacenada en el superblock.
-  */
+     la lista de bloques libres almacenada en el superblock. */
   block_count -= block_count % FREE_BLOCK_LIST_SIZE;
 
   sb->magic2 = sb->magic = MAGIC_NUMBER;
@@ -195,7 +196,7 @@ superblock_init(unsigned long size)
 
 
 /*-
- *      Routine:      superblock_print
+ *      Routine:      superblock_print_dump
  *
  *      Purpose:
  *              Muestra en pantalla un volcado del superbloque.
@@ -233,4 +234,47 @@ superblock_print_dump(const superblock_t * const sb)
 
   printf(">\n> (in core) lock = %s\n", sb->lock ? "Locked" : "Unlocked");
   printf("> (in core) modified = %s\n", sb->modified ? "YES" : "NO");
+}
+
+
+
+
+/*-
+ *      Routine:      superblock_print_dump_debug
+ *
+ *      Purpose:
+ *              Muestra en pantalla un volcado del superbloque.
+ *      Conditions:
+ *              sb debe apuntar a un superbloque válido.
+ *      Returns:
+ *              none
+ *
+ */
+void
+superblock_print_dump_debug(const superblock_t * const sb)
+{
+  int i;
+
+  DEBUG("# block_count = %u\n", sb->block_count);
+  DEBUG("# free_blocks = %u\n", sb->free_blocks);
+
+  DEBUG("# free_block_list = {");
+  for (i=0; i < sb->free_block_index; i++)
+    DEBUG("%u,", sb->free_block_list[i]);
+  DEBUG("%u}\n", sb->free_block_list[i]);
+  DEBUG("# free_block_index = %u\n", sb->free_block_index);
+  DEBUG("# inode_count = %u\n", sb->inode_count);
+  DEBUG("# free_inodes = %u\n", sb->free_inodes);
+
+  DEBUG("# free_inode_list = {");
+  for (i=0; i < sb->free_inode_index-1; i++)
+    DEBUG("%u,", sb->free_inode_list[i]);
+  DEBUG("%u}\n", sb->free_inode_list[i]);
+
+  DEBUG("# free_inode_index = %u\n", sb->free_inode_index);
+  DEBUG("# inode_zone_base = %u\n", sb->inode_zone_base);
+  DEBUG("# block_zone_base = %u\n", sb->block_zone_base);
+
+  /* DEBUG("#\n# (in core) lock = %s\n", sb->lock ? "Locked" : "Unlocked"); */
+  /* DEBUG("# (in core) modified = %s\n", sb->modified ? "YES" : "NO"); */
 }

@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-16 16:22:25 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-16 22:34:32 holzplatten"
  *
  *       File:         inode.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -53,7 +53,8 @@
  *              NULL on error.
  *
  */
-inode_t * namei(int dev, superblock_t * const sb, char * path)
+inode_t *
+namei(int dev, superblock_t * const sb, char * path)
 {
   char *p;
   inode_t *inode;
@@ -63,8 +64,7 @@ inode_t * namei(int dev, superblock_t * const sb, char * path)
 
   /* En FUSE, todas las rutas son absolutas, así que comenzamos cogiendo
      el inodo de / y actualizando path para que apunte al primer caracter
-     de la ruta relativo a /.
-  */
+     de la ruta relativo a /. */
   inode = iget(dev, sb, sb->first_inode);
 
   /* Caso especial de haber pedido el /. */
@@ -127,7 +127,8 @@ inode_t * namei(int dev, superblock_t * const sb, char * path)
  *              NULL on error.
  *
  */
-inode_t * iget(int dev, const superblock_t * const sb, int n)
+inode_t *
+iget(int dev, const superblock_t * const sb, int n)
 {
   /* int i; */
   inode_t *inode;
@@ -177,7 +178,8 @@ inode_t * iget(int dev, const superblock_t * const sb, int n)
  *              -1 on error.
  *
  */
-int iput(int dev, const superblock_t * const sb, inode_t * inode)
+int
+iput(int dev, const superblock_t * const sb, inode_t * inode)
 {
   /* int i; */
 
@@ -218,7 +220,8 @@ int iput(int dev, const superblock_t * const sb, inode_t * inode)
  *              NULL on error.
  *
  */
-inode_t * ialloc(int dev, superblock_t * const sb)
+inode_t *
+ialloc(int dev, superblock_t * const sb)
 {
   inode_t *inode;
   unsigned long in, i, j, *aux_list;
@@ -260,8 +263,7 @@ inode_t * ialloc(int dev, superblock_t * const sb)
         }
 
       /* Si no se llenó con los que había del final, recorrer la lista hasta el último
-         que se asignó
-      */
+         que se asignó. */
       for (i=0;
            j < FREE_INODE_LIST_SIZE && i < in;
            i++)
@@ -282,11 +284,10 @@ inode_t * ialloc(int dev, superblock_t * const sb)
         }
 
       /* Sería un detalle que free_inode_index indicase cuántos inodos hay anotados en
-         la dichosa lista. (¡¬¬)
-      */
+         la dichosa lista. (¡¬¬) */
       sb->free_inode_index = j;
-      /* Anotar en el superblock la lista en orden inverso*/
-      for (i=0, j--; i < j; i++)
+      /* Anotar en el superblock la lista en orden inverso. */
+      for (i=0, j--; i <= j; i++)
         sb->free_inode_list[j-i] = aux_list[i];
 
       free(aux_list);
@@ -322,6 +323,66 @@ inode_t * ialloc(int dev, superblock_t * const sb)
 
 
 /*-
+ *      Routine:       ifree
+ *
+ *      Purpose:
+ *              Libera un inodo y lo añade a la lista de inodos libres.
+ *              Si este inodo referencia a algún bloque de datos, también
+ *              lo libera y lo añade a su lista correspondiente
+ *      Conditions:
+ *              dev debe corresponder a un gnordofs válido.
+ *              sb debe apuntar a un superbloque válido.
+ *              inode debe apuntar a un inodo.
+ *      Returns:
+ *              -1 on error.
+ *
+ */
+int
+ifree(int dev, superblock_t * const sb, inode_t *inode)
+{
+  int i, block;
+
+  DEBUG_VERBOSE(">> ifree(inode->n = %d)\n", inode->n);
+
+  for (i=0; i < 10; i++)
+    {
+      block = inode_getblk(inode, i);
+      if (!unassigned_p(block))
+        freeblk(dev, sb, block);
+    }
+
+  if (sb->free_inode_index == FREE_INODE_LIST_SIZE)
+    {
+      DEBUG_VERBOSE(">> ialloc >> Lista de inodos libres llena...");
+
+      /* Si la lista está vacía y el nuevo inodo libre es anterior al
+         primero de esta lista, insertarlo (reemplazando) en dicha posición. */
+      if (sb->free_inode_list[0] > inode->n)
+        {
+          DEBUG_VERBOSE(" reemplazando primera entrada.");
+          sb->free_inode_list[0] = inode->n;
+        }
+    }
+  else
+    {
+      /* Si no, añadirlo a ella e incrementar el índice. */
+      sb->free_inode_list[sb->free_inode_index] = inode->n;
+      sb->free_inode_index++;
+    }
+
+  inode->type = I_FREE;
+  iput(dev, sb, inode);
+
+  /* Incrementar contador de inodos libres. */
+  sb->free_inodes++;
+
+  return 0;
+}
+
+
+
+
+/*-
  *      Routine:       inode_getblk
  *
  *      Purpose:
@@ -335,7 +396,8 @@ inode_t * ialloc(int dev, superblock_t * const sb)
  *              -1 on error
  *
  */
-int inode_getblk(inode_t *inode, int blk)
+int
+inode_getblk(inode_t *inode, int blk)
 {
   /* DEBUG_VERBOSE(">> inode_getblk(blk = %d)\n", blk); */
 
@@ -366,8 +428,9 @@ int inode_getblk(inode_t *inode, int blk)
  *              -1 on error
  *
  */
-int inode_allocblk(int dev, superblock_t * const sb,
-                   inode_t * inode, int blk)
+int
+inode_allocblk(int dev, superblock_t * const sb,
+               inode_t * inode, int blk)
 {
   int ablk;
 
@@ -398,7 +461,8 @@ int inode_allocblk(int dev, superblock_t * const sb,
  *              -1 on error.
  *
  */
-int inode_list_init(int fd, const superblock_t * const sb)
+int
+inode_list_init(int fd, const superblock_t * const sb)
 {
   unsigned int i, last_inode;
   inode_t idummy;

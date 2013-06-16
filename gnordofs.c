@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-16 16:22:20 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-16 22:27:16 holzplatten"
  *
  *       File:         gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -135,8 +135,7 @@ static int gnordofs_readdir(const char *path,
 
   DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_readdir(path = %s)\n", path);
 
-  /* La primera versión de readdir tan sólo soporta el /.
-     Menuda gilipollez, ¿no? */
+  /* La primera versión de readdir tan sólo soporta el /. */
   if (strcmp(path, "/") != 0)
     return -ENOENT;
 
@@ -194,7 +193,6 @@ static int gnordofs_mknod(const char *path,
     }
 
   /* base_dir */
-  
   iparent = namei(dev, sb, dname);
   if (!iparent)
     {
@@ -326,8 +324,13 @@ static int gnordofs_unlink(const char *path)
       return -1;
     }
 
-  --(inode->link_counter);
+  inode->link_counter--;
   iput(dev, sb, inode);
+
+  if (inode->link_counter == 0)
+    {
+      ifree(dev, sb, inode);
+    }
 
   superblock_write(dev, sb);
 
@@ -393,6 +396,9 @@ static struct fuse_operations oper = {
 int main(int argc, char *argv[])
 {
   openlog("GNORDOFS", LOG_PID, LOG_LOCAL0);
+  DEBUG("#########################################################################\n");
+  DEBUG("########################## GNORDOFS v0.0.1 beta #########################\n");
+  DEBUG("#########################################################################\n");
 
   dev = open("./bogniga.img", O_RDWR);
   sb = superblock_read(dev);

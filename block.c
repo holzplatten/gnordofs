@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-16 16:22:04 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-16 22:26:22 holzplatten"
  *
  *       File:         block.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -53,26 +53,74 @@
  *              -1 on error.
  *
  */
-int allocblk(int dev, superblock_t * const sb)
+int
+allocblk(int dev, superblock_t * const sb)
 {
+  block_t * buff;
   int block;
 
   block = sb->free_block_list[sb->free_block_index];
 
-  /* Si la lista parcial de bloques libres sólo contiene un bloque,
-     anotar ese número y cargar la lista con lo que haya en él. */
+  /* Si la lista parcial de bloques libres sólo contiene un bloque, anotar
+     su número y cargar la lista con lo que haya en el bloque al que apunta. */
   if (sb->free_block_index == 0)
     {
-      block_t * buff;
-
       buff = getblk(dev, sb, block);
+      if (!buff)
+        return -1;
+
       memcpy(sb->free_block_list, buff, sizeof(sb->free_block_list));
       sb->free_block_index = FREE_BLOCK_LIST_SIZE;
+
+      free(buff);
     }
 
-  --(sb->free_block_index);
+  sb->free_block_index--;
 
   return block;
+}
+
+
+
+
+/*-
+ *      Routine:       freeblk
+ *
+ *      Purpose:
+ *              Añade a la lista de libres un bloque de datos.
+ *      Conditions:
+ *              dev debe corresponder a un gnordofs válido.
+ *              sb debe apuntar a un superblock válido.
+ *              block debe apuntar a un bloque absoluto.
+ *      Returns:
+ *              -1 on error.
+ *
+ */
+int
+freeblk(int dev, superblock_t * const sb, int block)
+{
+  block_t buff;
+
+  sb->free_block_index++;
+
+  /* Si la lista parcial de bloques libres está llena, guardarla en el nuevo
+     bloque libre.  */
+  if (sb->free_block_index == FREE_BLOCK_LIST_SIZE)
+    {
+      memset(&buff, 0, sizeof(block_t));
+      memcpy(sb->free_block_list, &buff, FREE_BLOCK_LIST_SIZE*sizeof(unsigned long));
+
+      if (writeblk(dev, sb, block, &buff) < 0)
+        return -1;
+      
+      sb->free_block_index = 0;
+    }
+  else
+    {
+      sb->free_block_list[sb->free_block_index] = block;
+    }
+
+  return 0;
 }
 
 
@@ -92,7 +140,8 @@ int allocblk(int dev, superblock_t * const sb)
  *              NULL on error.
  *
  */
-block_t * getblk(int dev, superblock_t *sb, int n)
+block_t *
+getblk(int dev, superblock_t *sb, int n)
 {
   int offset;
   block_t *datablock;
@@ -137,7 +186,8 @@ block_t * getblk(int dev, superblock_t *sb, int n)
  *              -1 on error.
  *
  */
-int writeblk(int dev, superblock_t *sb, int n, block_t *datablock)
+int
+writeblk(int dev, superblock_t *sb, int n, block_t *datablock)
 {
   int offset;
 
@@ -171,7 +221,8 @@ int writeblk(int dev, superblock_t *sb, int n, block_t *datablock)
   *              -1 on error.
   *
   */
-int free_block_list_init(int fd, const superblock_t * const sb)
+int
+free_block_list_init(int fd, const superblock_t * const sb)
 {
   unsigned int i, acc;
   unsigned int offset, block_count;
@@ -191,14 +242,6 @@ int free_block_list_init(int fd, const superblock_t * const sb)
 
       lseek(fd, offset , SEEK_SET);
       
-      /* printf("ESCRIBIENDO BLOQUE %u (%x): ", acc, offset); */
-      /* printf(" -> %u: ", acc); */
-      /* for (i=0; i<FREE_BLOCK_LIST_SIZE/8-1; ++i) */
-      /*   { */
-      /*     printf("%u,", sublist[i]); */
-      /*   } */
-      /* printf("%u...\n", sublist[i]); */
-
       if (write(fd, &sublist, sizeof(sublist)) < sizeof(sublist))
         return -1;
 
@@ -225,7 +268,8 @@ int free_block_list_init(int fd, const superblock_t * const sb)
   *              none
   *
   */
-void print_free_block_list(int fd, const superblock_t * const sb)
+void
+print_free_block_list(int fd, const superblock_t * const sb)
 {
   unsigned int i;
   unsigned int offset, block_count, next;

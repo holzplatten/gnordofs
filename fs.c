@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-16 16:22:16 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-16 19:17:40 holzplatten"
  *
  *       File:         fs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -51,8 +51,9 @@
  *              Un entero con el número de bytes leidos.
  *
  */
-int do_read(int dev, superblock_t *sb, inode_t *inode,
-            char *buffer, int n)
+int
+do_read(int dev, superblock_t *sb, inode_t *inode,
+        char *buffer, int n)
 {
   int old_blk = -1;
   struct block * datablock = NULL;
@@ -117,9 +118,10 @@ int do_read(int dev, superblock_t *sb, inode_t *inode,
  *              -1 on error.
  *
  */
-int do_lseek(int dev __attribute__((unused)),
-            superblock_t *sb __attribute__((unused)),
-            inode_t *inode, off_t offset, int whence)
+int
+do_lseek(int dev __attribute__((unused)),
+         superblock_t *sb __attribute__((unused)),
+         inode_t *inode, off_t offset, int whence)
 {
   switch(whence)
     {
@@ -161,8 +163,9 @@ int do_lseek(int dev __attribute__((unused)),
  *              Un entero con el número de bytes escritos.
  *
  */
-int do_write(int dev, superblock_t *sb, inode_t *inode,
-             const char * const buffer, int n)
+int
+do_write(int dev, superblock_t *sb, inode_t *inode,
+         const char * const buffer, int n)
 {
   int old_blk = -1;
   struct block * datablock = NULL;

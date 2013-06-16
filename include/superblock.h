@@ -81,5 +81,6 @@ superblock_t * superblock_read(int fd);
 superblock_t * superblock_init(unsigned long size);
 
 void superblock_print_dump(const superblock_t * const sb);
+void superblock_print_dump_debug(const superblock_t * const sb);
 
 #endif
