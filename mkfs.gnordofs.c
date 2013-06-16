@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-16 01:12:17 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-16 15:19:15 holzplatten"
  *
  *       File:         mkfs.gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -79,6 +79,7 @@ int main(int argc, char **argv)
 
   add_dir_entry(dev, sb, rootdir, rootdir, ".");
   add_dir_entry(dev, sb, rootdir, rootdir, "..");
+  rootdir->link_counter = 2;
   iput(dev, sb, rootdir);
   {
     dir_entry_t *de;
