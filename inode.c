@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-16 11:51:42 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-16 13:34:22 holzplatten"
  *
  *       File:         inode.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -109,7 +109,7 @@ inode_t * namei(int dev, superblock_t * const sb, char * path)
  */
 inode_t * iget(int dev, const superblock_t * const sb, int n)
 {
-  int i;
+  /* int i; */
   inode_t *inode;
 
   DEBUG_VERBOSE(">> iget(%d)", n);
@@ -129,13 +129,13 @@ inode_t * iget(int dev, const superblock_t * const sb, int n)
       return NULL;
     }
 
-  DEBUG_VERBOSE(">>>> n = %d", inode->n);
-  DEBUG_VERBOSE(">>>> type = %x", inode->type);
-  DEBUG_VERBOSE(">>>> size = %d", inode->size);
-  DEBUG_VERBOSE(">>>> direct_blocks = {");
-  for (i=0; i<10; i++)
-    DEBUG_VERBOSE("\t%d", inode->direct_blocks[i]);
-  DEBUG_VERBOSE("}\n");
+  /* DEBUG_VERBOSE(">>>> n = %d", inode->n); */
+  /* DEBUG_VERBOSE(">>>> type = %x", inode->type); */
+  /* DEBUG_VERBOSE(">>>> size = %d", inode->size); */
+  /* DEBUG_VERBOSE(">>>> direct_blocks = {"); */
+  /* for (i=0; i<10; i++) */
+  /*   DEBUG_VERBOSE("\t%d", inode->direct_blocks[i]); */
+  /* DEBUG_VERBOSE("}\n"); */
 
   return inode;
 }
@@ -159,7 +159,7 @@ inode_t * iget(int dev, const superblock_t * const sb, int n)
  */
 int iput(int dev, const superblock_t * const sb, inode_t * inode)
 {
-  int i;
+  /* int i; */
 
   if (!inode)
     return -1;
@@ -171,13 +171,13 @@ int iput(int dev, const superblock_t * const sb, inode_t * inode)
   if (write(dev, inode, sizeof(struct inode)) < sizeof(struct inode))
     return -1;
 
-  DEBUG_VERBOSE(">>>> n = %d", inode->n);
-  DEBUG_VERBOSE(">>>> type = %x", inode->type);
-  DEBUG_VERBOSE(">>>> size = %d", inode->size);
-  DEBUG_VERBOSE(">>>> direct_blocks = {");
-  for (i=0; i<10; i++)
-    DEBUG_VERBOSE("\t%d", inode->direct_blocks[i]);
-  DEBUG_VERBOSE("}");
+  /* DEBUG_VERBOSE(">>>> n = %d", inode->n); */
+  /* DEBUG_VERBOSE(">>>> type = %x", inode->type); */
+  /* DEBUG_VERBOSE(">>>> size = %d", inode->size); */
+  /* DEBUG_VERBOSE(">>>> direct_blocks = {"); */
+  /* for (i=0; i<10; i++) */
+  /*   DEBUG_VERBOSE("\t%d", inode->direct_blocks[i]); */
+  /* DEBUG_VERBOSE("}"); */
 
   return 0;
 }
@@ -201,7 +201,7 @@ int iput(int dev, const superblock_t * const sb, inode_t * inode)
 inode_t * ialloc(int dev, superblock_t * const sb)
 {
   inode_t *inode;
-  unsigned long in, i, j;
+  unsigned long in, i, j, *aux_list;
 
   DEBUG_VERBOSE(">> ialloc\n");
 
@@ -214,7 +214,9 @@ inode_t * ialloc(int dev, superblock_t * const sb)
   /* Si la lista está vacía, recorrer la zona de inodos en busca de inodos libres. */
   if (sb->free_inode_index == 0)
     {
-      DEBUG_SHIT(">> ialloc >> Lista de inodos libres vacía. Rellenando...\n");
+      DEBUG_VERBOSE(">> ialloc >> Lista de inodos libres vacía. Rellenando...\n");
+
+      aux_list = malloc(FREE_INODE_LIST_SIZE * sizeof(unsigned long));
 
       in = sb->free_inode_list[0];
       /* Comienza por el último que se asignó, que probablemente haya más después de él. */
@@ -225,13 +227,13 @@ inode_t * ialloc(int dev, superblock_t * const sb)
           inode = iget(dev, sb, i);
           if (!inode)
             {
-              DEBUG_SHIT(">> ialloc >> ERROR al rellenar la lista de inodos libres!\n");
+              DEBUG_VERBOSE(">> ialloc >> ERROR al rellenar la lista de inodos libres!\n");
               return NULL;
             }
           
           if (inode->type == I_FREE)
             {
-              sb->free_inode_list[j++] = i;
+              aux_list[j++] = i;
             }
 
           free(inode);
@@ -247,13 +249,13 @@ inode_t * ialloc(int dev, superblock_t * const sb)
           inode = iget(dev, sb, i);
           if (!inode)
             {
-              DEBUG_SHIT(">> ialloc >> ERROR al rellenar la lista de inodos libres!\n");
+              DEBUG_VERBOSE(">> ialloc >> ERROR al rellenar la lista de inodos libres!\n");
               return NULL;
             }
           
           if (inode->type = I_FREE)
             {
-              sb->free_inode_list[j++] = i;
+              aux_list[j++] = i;
             }
 
           free(inode);
@@ -263,8 +265,13 @@ inode_t * ialloc(int dev, superblock_t * const sb)
          la dichosa lista. (¡¬¬)
       */
       sb->free_inode_index = j;
+      /* Anotar en el superblock la lista en orden inverso*/
+      for (i=0, j--; i < j; i++)
+        sb->free_inode_list[j-i] = aux_list[i];
 
-      DEBUG_SHIT(">> ialloc >> Lista de inodos libres con %d nuevas entradas...\n",
+      free(aux_list);
+
+      DEBUG_VERBOSE(">> ialloc >> Lista de inodos libres con %d nuevas entradas...\n",
             sb->free_inode_index);
     }
 
@@ -277,14 +284,16 @@ inode_t * ialloc(int dev, superblock_t * const sb)
   if (inode)
     {
       /* Decrementar contador de inodos libres. */
-      --(sb->free_inodes);
+      sb->free_inodes--;
 
       /* Marcar como no asignados cada uno de los elementos de la lista de bloques. */
       for (i=0; i<10; i++)
         inode->direct_blocks[i] = BLK_UNASSIGNED;
     }
 
-  DEBUG_VERBOSE(">> ialloc >> inode = %x\n", inode);
+  DEBUG_VERBOSE(">> ialloc >> inode = %d\n", inode->n);
+  DEBUG_VERBOSE(">> ialloc >> sb->free_inode_index = %d\n", sb->free_inode_index);
+  DEBUG_VERBOSE(">> ialloc >> sb->free_inodes = %d\n", sb->free_inodes);
 
   return inode;
 }
@@ -308,8 +317,7 @@ inode_t * ialloc(int dev, superblock_t * const sb)
  */
 int inode_getblk(inode_t *inode, int blk)
 {
-  DEBUG_VERBOSE(">> inode_getblk\n");
-  DEBUG_VERBOSE(">> inode_getblk >> blk = %d\n", blk);
+  /* DEBUG_VERBOSE(">> inode_getblk(blk = %d)\n", blk); */
 
   if (blk < 0)
     return -1;

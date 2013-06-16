@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-16 11:54:28 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-16 12:57:41 holzplatten"
  *
  *       File:         dir.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -39,6 +39,9 @@ int add_dir_entry(int dev, superblock_t *sb, inode_t *dir_inode, inode_t *entry_
   int i;
   dir_entry_t de;
 
+  DEBUG_VERBOSE(">> add_dir_entry(dir_inode->n = %d, entry_inode->n = %d, entry_name = %s)\n",
+                dir_inode->n, entry_inode->n, entry_name);
+
   if (dir_inode->type != I_DIR)
     {
       DEBUG_VERBOSE("UH?");
@@ -48,7 +51,6 @@ int add_dir_entry(int dev, superblock_t *sb, inode_t *dir_inode, inode_t *entry_
   do_lseek(dev, sb, dir_inode, 0, SEEK_SET);
   for (i=0; i*sizeof(struct dir_entry) < dir_inode->size; i++)
     {
-      DEBUG_VERBOSE("%d\n", i);
       if (do_read(dev, sb, dir_inode, (void *) &de, sizeof(dir_entry_t)) < sizeof(dir_entry_t))
         {
           DEBUG_VERBOSE("Error leyendo entrada número %d del I_DIR %d", i, dir_inode->n);
@@ -64,7 +66,7 @@ int add_dir_entry(int dev, superblock_t *sb, inode_t *dir_inode, inode_t *entry_
         return -1;
     }
 
-  DEBUG_VERBOSE(">> add_dir_entry -> añadiendo entrada en posición %d\n", i);
+  DEBUG_VERBOSE(">> add_dir_entry >> i = %d\n", i);
   de.inode = entry_inode->n;
   strcpy(de.name, entry_name);
 
@@ -109,7 +111,7 @@ int del_dir_entry_by_name(int dev, superblock_t *sb, inode_t *inode,
   int i, found;
   dir_entry_t de;
 
-  DEBUG_VERBOSE(">> del_dir_entry_by_name(entry_name = %s)\n", entry_name);
+  DEBUG_VERBOSE(">> del_dir_entry_by_name(inode->n = %d, entry_name = %s)\n", inode->n, entry_name);
 
   if (inode->type != I_DIR)
     {
@@ -120,7 +122,6 @@ int del_dir_entry_by_name(int dev, superblock_t *sb, inode_t *inode,
   do_lseek(dev, sb, inode, 0, SEEK_SET);
   i = 0;
   do {
-    DEBUG_VERBOSE(">> del_dir_entry >> i=%d\n", i);
     if (do_read(dev, sb, inode, (void *) &de, sizeof(dir_entry_t))
                                                               < sizeof(dir_entry_t))
       {
@@ -149,6 +150,8 @@ int del_dir_entry_by_name(int dev, superblock_t *sb, inode_t *inode,
     return -1;
 
   inode->size -= sizeof(dir_entry_t);
+
+  DEBUG_VERBOSE(">> del_dir_entry >> i = %d\n", i);
   
   return 0;
 }
@@ -175,7 +178,7 @@ dir_entry_t * get_dir_entry(int dev, superblock_t *sb, inode_t *inode, int n)
   dir_entry_t de = { -1, "FIN" };
   dir_entry_t *de_n;
 
-  DEBUG_VERBOSE(">> get_dir_entry\n");
+  DEBUG_VERBOSE(">> get_dir_entry(n = %d)\n", n);
 
   if (inode->type != I_DIR)
     {
@@ -186,7 +189,6 @@ dir_entry_t * get_dir_entry(int dev, superblock_t *sb, inode_t *inode, int n)
   do_lseek(dev, sb, inode, 0, SEEK_SET);
   i = 0;
   do {
-    DEBUG_VERBOSE(">> get_dir_entry >> i=%d\n", i);
     if (do_read(dev, sb, inode, (void *) &de, sizeof(dir_entry_t)) < sizeof(dir_entry_t))
       {
         DEBUG_VERBOSE("Error leyendo entrada número %d del I_DIR %d", i, inode->n);
@@ -207,6 +209,11 @@ dir_entry_t * get_dir_entry(int dev, superblock_t *sb, inode_t *inode, int n)
     de_n->inode = -1;
   else
     memcpy(de_n, &de, sizeof(struct dir_entry));
+
+  DEBUG_VERBOSE(">> get_dir_entry >> i = %d\n", i);
+  DEBUG_VERBOSE(">> get_dir_entry >> de_n->inode = %d\n", de_n->inode);
+  if (de_n->inode != -1)
+    DEBUG_VERBOSE(">> get_dir_entry >> de_n->name = %s\n", de_n->name);
 
   return de_n;
 }
@@ -233,7 +240,7 @@ dir_entry_t * get_dir_entry_by_name(int dev, superblock_t *sb, inode_t *inode, c
   dir_entry_t de = { -1, "FIN" };
   dir_entry_t *de_n;
 
-  DEBUG_VERBOSE(">> get_dir_entry_by_name\n");
+  DEBUG_VERBOSE(">> get_dir_entry_by_name(name = %s)\n", name);
 
   if (inode->type != I_DIR)
     {
@@ -244,7 +251,6 @@ dir_entry_t * get_dir_entry_by_name(int dev, superblock_t *sb, inode_t *inode, c
   do_lseek(dev, sb, inode, 0, SEEK_SET);
   i = 0;
   do {
-    DEBUG_VERBOSE(">> get_dir_entry >> i=%d\n", i);
     if (do_read(dev, sb, inode, (void *) &de, sizeof(dir_entry_t)) < sizeof(dir_entry_t))
       {
         DEBUG_VERBOSE("Error leyendo entrada número %d del I_DIR %d", i, inode->n);
@@ -267,6 +273,11 @@ dir_entry_t * get_dir_entry_by_name(int dev, superblock_t *sb, inode_t *inode, c
     de_n->inode = -1;
   else
     memcpy(de_n, &de, sizeof(struct dir_entry));
+
+  DEBUG_VERBOSE(">> get_dir_entry_by_name >> i=%d\n", i);
+  DEBUG_VERBOSE(">> get_dir_entry_by_name >> de_n->inode = %d\n", de_n->inode);
+  if (de_n->inode != -1)
+    DEBUG_VERBOSE(">> get_dir_entry_by_name >> de_n->name = %s\n", de_n->name);
 
   return de_n;
 }

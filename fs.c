@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-16 11:55:08 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-16 12:16:35 holzplatten"
  *
  *       File:         fs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -150,8 +150,8 @@ int do_write(int dev, superblock_t *sb, inode_t *inode,
   int blk, byte;
   int absolute_blk;
 
-  DEBUG_VERBOSE(">> do_write(n=%d)\n", n);
-  DEBUG_VERBOSE(">> do_write >> offset_ptr = %d\n", inode->offset_ptr);
+  /* DEBUG_VERBOSE(">> do_write(n=%d)\n", n); */
+  /* DEBUG_VERBOSE(">> do_write >> offset_ptr = %d\n", inode->offset_ptr); */
 
   while (n>0)
     {
@@ -159,20 +159,20 @@ int do_write(int dev, superblock_t *sb, inode_t *inode,
       blk = inode->offset_ptr / sizeof(struct block);
       /* Calcular offset dentro del bloque. */
       byte = inode->offset_ptr % sizeof(struct block);
-      DEBUG_VERBOSE(">> do_write >> blk = %d, offset = %d\n", blk, byte);
+      /* DEBUG_VERBOSE(">> do_write >> blk = %d, offset = %d\n", blk, byte); */
 
       /* Calcular bloque absoluto (todo el fs). */
       absolute_blk = inode_getblk(inode, blk);
       if (absolute_blk == -1)
         return -1;
-      DEBUG_VERBOSE(">> do_write >> absolute_blk = %d\n", absolute_blk);
+      /* DEBUG_VERBOSE(">> do_write >> absolute_blk = %d\n", absolute_blk); */
 
       /* Si es un bloque no mapeado todavía, reservar y continuar. */
       if (unassigned_p(absolute_blk))
         {
-          DEBUG_VERBOSE("do_write -> absolute_blk no mapeado aún\n", absolute_blk);
+          /* DEBUG_VERBOSE("do_write -> absolute_blk no mapeado aún\n", absolute_blk); */
           absolute_blk = inode_allocblk(dev, sb, inode, blk);
-          DEBUG_VERBOSE("do_write -> mapeado bloque %d\n", absolute_blk);
+          /* DEBUG_VERBOSE("do_write -> mapeado bloque %d\n", absolute_blk); */
           if (absolute_blk == -1)
             return -1;
         }
@@ -187,7 +187,7 @@ int do_write(int dev, superblock_t *sb, inode_t *inode,
               free(datablock);
             }
           old_blk = absolute_blk;
-          DEBUG_VERBOSE("getblk con absolute_blk=%d\n", absolute_blk);
+          /* DEBUG_VERBOSE("getblk con absolute_blk=%d\n", absolute_blk); */
           datablock = getblk(dev, sb, absolute_blk);
 
           if (!datablock)

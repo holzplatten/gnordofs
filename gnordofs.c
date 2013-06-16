@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-15 20:05:53 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-16 12:50:42 holzplatten"
  *
  *       File:         gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -35,7 +35,7 @@ static int gnordofs_truncate(const char *path, off_t size)
   int res;
   inode_t *inode;
 
-  DEBUG(">>>>>>>>>> truncate(path = %s, size = %d)\n", path, size);
+  DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_truncate(path = %s, size = %d)\n", path, size);
 
   p = strdup(path);
   inode = namei(dev, sb, p);
@@ -60,7 +60,7 @@ static int gnordofs_getattr(const char *path, struct stat *stbuf)
   char *p;
   int res = 0;
 
-  DEBUG(">>>>>>>>>> getattr(path = %s)\n", path);
+  DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_getattr(path = %s)\n", path);
 
   p = strdup(path);
   inode = namei(dev, sb, p);
@@ -109,7 +109,7 @@ static int gnordofs_readdir(const char *path,
   int i;
   char *p;
 
-  DEBUG(">>>>>>>>>> readdir(path = %s)\n", path);
+  DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_readdir(path = %s)\n", path);
 
   /* La primera versión de readdir tan sólo soporta el /.
      Menuda gilipollez, ¿no? */
@@ -128,8 +128,6 @@ static int gnordofs_readdir(const char *path,
   while (de->inode != -1)
     {
       struct stat status;
-
-      DEBUG("readdir -> %d (%s)\n", de->inode, de->name);
 
       status.st_ino = de->inode;
       status.st_mode = 0777;
@@ -154,7 +152,7 @@ static int gnordofs_mknod(const char *path,
   int i;
   char *dirc, *basec, *dname, *bname;
 
-  DEBUG(">>>>>>>>>> mknod(path = %s)\n", path);
+  DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_mknod(path = %s)\n", path);
 
   dirc = strdup(path);
   basec = strdup(path);
@@ -190,6 +188,7 @@ static int gnordofs_mknod(const char *path,
 
   inode->type = I_FILE;
   iput(dev, sb, inode);
+  DEBUG_VERBOSE("mknod -> (%d) %s\n", inode->n, bname);
   
   free(dirc);
   free(basec);
@@ -199,13 +198,13 @@ static int gnordofs_mknod(const char *path,
 
 static int gnordofs_open(const char *path, struct fuse_file_info *fi)
 {
-  DEBUG(">>>>>>>>>> open(path = %s)\n", path);
+  DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_open(path = %s)\n", path);
   return 0;
 }
 
 static int gnordofs_release(const char *path, struct fuse_file_info *fi)
 {
-  DEBUG(">>>>>>>>>> release(path = %s)\n", path);
+  DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_release(path = %s)\n", path);
   return 0;
 }
 
@@ -216,7 +215,7 @@ static int gnordofs_read(const char *path, char *buf, size_t size, off_t offset,
   int count;
   char *p;
 
-  DEBUG(">>>>>>>>>> read(path = %s, size = %d, offset = %d)\n", path, size, offset);
+  DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_read(path = %s, size = %d, offset = %d)\n", path, size, offset);
 
   p = strdup(path);
 
@@ -249,7 +248,7 @@ static int gnordofs_unlink(const char *path)
   inode_t *idir, *inode;
   dir_entry_t *de;
 
-  DEBUG(">>>>>>>>>> unlink(path = %s)\n", path);
+  DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_unlink(path = %s)\n", path);
 
   dirc = strdup(path);
   basec = strdup(path);
@@ -316,7 +315,7 @@ static int gnordofs_write(const char *path, const char *buf, size_t size, off_t 
   int count;
   char *p;
 
-  DEBUG(">>>>>>>>>> write(path = %s, size = %d, offset = %d)\n", path, size, offset);
+  DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_write(path = %s, size = %d, offset = %d)\n", path, size, offset);
 
   p = strdup(path);
 
