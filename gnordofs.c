@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-16 12:50:42 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-16 16:00:29 holzplatten"
  *
  *       File:         gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -49,6 +49,8 @@ static int gnordofs_truncate(const char *path, off_t size)
       iput(dev, sb, inode);
     }
 
+  superblock_write(dev, sb);
+
   free(p);
 
   return res;
@@ -74,6 +76,7 @@ static int gnordofs_getattr(const char *path, struct stat *stbuf)
         {
           stbuf->st_mode = S_IFDIR | 0755;
           stbuf->st_nlink = inode->link_counter;
+          stbuf->st_size = inode->size;
         }
       else if (inode->type == I_FILE)
         {
@@ -88,6 +91,7 @@ static int gnordofs_getattr(const char *path, struct stat *stbuf)
     }
 
   free(p);
+
   return res;
 }
 
@@ -190,6 +194,8 @@ static int gnordofs_mknod(const char *path,
   iput(dev, sb, inode);
   DEBUG_VERBOSE("mknod -> (%d) %s\n", inode->n, bname);
   
+  superblock_write(dev, sb);
+
   free(dirc);
   free(basec);
 
@@ -236,6 +242,8 @@ static int gnordofs_read(const char *path, char *buf, size_t size, off_t offset,
 
   do_lseek(dev, sb, inode, offset, SEEK_SET);
   count = do_read(dev, sb, inode, buf, size);
+
+  superblock_write(dev, sb);
 
   free(inode);
 
@@ -301,6 +309,8 @@ static int gnordofs_unlink(const char *path)
   --(inode->link_counter);
   iput(dev, sb, inode);
 
+  superblock_write(dev, sb);
+
   free(inode);
   free(de);
 
@@ -333,6 +343,7 @@ static int gnordofs_write(const char *path, const char *buf, size_t size, off_t 
     inode->size = offset + size;
 
   iput(dev, sb, inode);
+  superblock_write(dev, sb);
 
   free(inode);
 
