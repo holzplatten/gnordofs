@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-15 15:00:57 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-16 11:51:42 holzplatten"
  *
  *       File:         inode.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -51,7 +51,7 @@ inode_t * namei(int dev, superblock_t * const sb, char * path)
   if (strcmp(path, "/") == 0)
     return inode;
 
-  ++path;
+  path++;
   p = strchr(path, '/');
   while (p)
     {
@@ -133,7 +133,7 @@ inode_t * iget(int dev, const superblock_t * const sb, int n)
   DEBUG_VERBOSE(">>>> type = %x", inode->type);
   DEBUG_VERBOSE(">>>> size = %d", inode->size);
   DEBUG_VERBOSE(">>>> direct_blocks = {");
-  for (i=0; i<10; ++i)
+  for (i=0; i<10; i++)
     DEBUG_VERBOSE("\t%d", inode->direct_blocks[i]);
   DEBUG_VERBOSE("}\n");
 
@@ -201,7 +201,7 @@ int iput(int dev, const superblock_t * const sb, inode_t * inode)
 inode_t * ialloc(int dev, superblock_t * const sb)
 {
   inode_t *inode;
-  unsigned long in;
+  unsigned long in, i, j;
 
   DEBUG_VERBOSE(">> ialloc\n");
 
@@ -214,31 +214,73 @@ inode_t * ialloc(int dev, superblock_t * const sb)
   /* Si la lista está vacía, recorrer la zona de inodos en busca de inodos libres. */
   if (sb->free_inode_index == 0)
     {
-      DEBUG_VERBOSE(">> ialloc >> Lista de inodos libres vacía. Rellenando...\n");
+      DEBUG_SHIT(">> ialloc >> Lista de inodos libres vacía. Rellenando...\n");
 
+      in = sb->free_inode_list[0];
       /* Comienza por el último que se asignó, que probablemente haya más después de él. */
-      //   while (shit)
-      //     blabla;
+      for (j = 0, i = in;
+           j < FREE_INODE_LIST_SIZE && i < sb->inode_count;
+           i++)
+        {
+          inode = iget(dev, sb, i);
+          if (!inode)
+            {
+              DEBUG_SHIT(">> ialloc >> ERROR al rellenar la lista de inodos libres!\n");
+              return NULL;
+            }
+          
+          if (inode->type == I_FREE)
+            {
+              sb->free_inode_list[j++] = i;
+            }
 
-      DEBUG_VERBOSE(">> ialloc >> Lista de inodos libres con %d nuevas entradas...\n",
+          free(inode);
+        }
+
+      /* Si no se llenó con los que había del final, recorrer la lista hasta el último
+         que se asignó
+      */
+      for (i=0;
+           j < FREE_INODE_LIST_SIZE && i < in;
+           i++)
+        {
+          inode = iget(dev, sb, i);
+          if (!inode)
+            {
+              DEBUG_SHIT(">> ialloc >> ERROR al rellenar la lista de inodos libres!\n");
+              return NULL;
+            }
+          
+          if (inode->type = I_FREE)
+            {
+              sb->free_inode_list[j++] = i;
+            }
+
+          free(inode);
+        }
+
+      /* Sería un detalle que free_inode_index indicase cuántos inodos hay anotados en
+         la dichosa lista. (¡¬¬)
+      */
+      sb->free_inode_index = j;
+
+      DEBUG_SHIT(">> ialloc >> Lista de inodos libres con %d nuevas entradas...\n",
             sb->free_inode_index);
     }
 
   /* Obtener primer inodo libre de la lista de idem. */
-  --(sb->free_inode_index);
+  sb->free_inode_index--;
   in = sb->free_inode_list[sb->free_inode_index];
 
   inode = iget(dev, sb, in);
 
   if (inode)
     {
-      int i;
-
       /* Decrementar contador de inodos libres. */
       --(sb->free_inodes);
 
       /* Marcar como no asignados cada uno de los elementos de la lista de bloques. */
-      for (i=0; i<10; ++i)
+      for (i=0; i<10; i++)
         inode->direct_blocks[i] = BLK_UNASSIGNED;
     }
 
@@ -338,11 +380,11 @@ int inode_list_init(int fd, const superblock_t * const sb)
   memset(&idummy, 0, sizeof(struct inode));
 
   last_inode = sb->inode_count;
-  for (i=0; i < last_inode; ++i)
+  for (i=0; i < last_inode; i++)
     {
       if (write(fd, &idummy, sizeof(struct inode)) < sizeof(struct inode))
         return -1;
-      ++idummy.n;
+      idummy.n++;
     }
 
   return 0;

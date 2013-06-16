@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-11 00:28:38 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-16 11:53:58 holzplatten"
  *
  *       File:         block.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -164,9 +164,9 @@ int free_block_list_init(int fd, const superblock_t * const sb)
   block_count = sb->block_count;
   while(acc < block_count)
     {
-      for (i=1; i<=FREE_BLOCK_LIST_SIZE; ++i)
+      for (i=1; i<=FREE_BLOCK_LIST_SIZE; i++)
         {
-          ++acc;
+          acc++;
           sublist[FREE_BLOCK_LIST_SIZE-i] = acc;
         }
 
@@ -216,7 +216,7 @@ void print_free_block_list(int fd, const superblock_t * const sb)
   block_zone_base = sb->block_zone_base;
 
   printf("Superblock free list: ");
-  for (i=0; i<FREE_BLOCK_LIST_SIZE/8-1; ++i)
+  for (i=0; i<FREE_BLOCK_LIST_SIZE/8-1; i++)
     {
       printf("%d,", sb->free_block_list[i]);
     }
@@ -237,7 +237,7 @@ void print_free_block_list(int fd, const superblock_t * const sb)
           return;
         }
 
-      for (i=0; i<FREE_BLOCK_LIST_SIZE/8-1; ++i)
+      for (i=0; i<FREE_BLOCK_LIST_SIZE/8-1; i++)
         {
           printf("%u,", sublist[i]);
         }

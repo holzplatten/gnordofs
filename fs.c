@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-16 00:55:49 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-16 11:55:08 holzplatten"
  *
  *       File:         fs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -68,9 +68,9 @@ int do_read(int dev, superblock_t *sb, inode_t *inode,
       /* Copiar byte al buffer de salida. */
       buffer[count] = datablock->data[byte];
 
-      ++(inode->offset_ptr);
-      ++count;
-      --n;
+      inode->offset_ptr++;
+      count++;
+      n--;
     }
 
   if (datablock)
@@ -197,9 +197,9 @@ int do_write(int dev, superblock_t *sb, inode_t *inode,
       /* Escribir byte en el bloque de marras. */
       datablock->data[byte] = buffer[count];
 
-      ++(inode->offset_ptr);
-      ++count;
-      --n;
+      inode->offset_ptr++;
+      count++;
+      n--;
     }
 
   if (datablock == NULL)

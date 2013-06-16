@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-15 20:05:33 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-16 11:54:28 holzplatten"
  *
  *       File:         dir.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -46,7 +46,7 @@ int add_dir_entry(int dev, superblock_t *sb, inode_t *dir_inode, inode_t *entry_
     }
 
   do_lseek(dev, sb, dir_inode, 0, SEEK_SET);
-  for (i=0; i*sizeof(struct dir_entry) < dir_inode->size; ++i)
+  for (i=0; i*sizeof(struct dir_entry) < dir_inode->size; i++)
     {
       DEBUG_VERBOSE("%d\n", i);
       if (do_read(dev, sb, dir_inode, (void *) &de, sizeof(dir_entry_t)) < sizeof(dir_entry_t))
@@ -80,7 +80,7 @@ int add_dir_entry(int dev, superblock_t *sb, inode_t *dir_inode, inode_t *entry_
   /* Ya sólo falta incrementar en 1 el número de enlaces del inodo apuntado por la
      entrada que se acaba de insertar.
   */
-  ++(entry_inode->link_counter);
+  entry_inode->link_counter++;
   
   return 0;
 }
@@ -131,7 +131,7 @@ int del_dir_entry_by_name(int dev, superblock_t *sb, inode_t *inode,
     /* Las entradas libres no cuentan como el espacio ocupado. */
     if (de.inode == -1)
       continue;
-    ++i;
+    i++;
 
     found = strcmp(de.name, entry_name) == 0;
 
@@ -196,7 +196,7 @@ dir_entry_t * get_dir_entry(int dev, superblock_t *sb, inode_t *inode, int n)
     /* Las entradas libres no cuentan como el espacio ocupado. */
     if (de.inode == -1)
       continue;
-    ++i;
+    i++;
 
   } while (i <= n  &&  i*sizeof(struct dir_entry) < inode->size);
 
@@ -254,7 +254,7 @@ dir_entry_t * get_dir_entry_by_name(int dev, superblock_t *sb, inode_t *inode, c
     /* Las entradas libres no cuentan como el espacio ocupado. */
     if (de.inode == -1)
       continue;
-    ++i;
+    i++;
 
     found = strcmp(de.name, name) == 0;
 
