@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-17 13:25:36 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 14:54:44 holzplatten"
  *
  *       File:         gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -412,6 +412,108 @@ static int gnordofs_release(const char *path, struct fuse_file_info *fi)
   return 0;
 }
 
+static int gnordofs_rmdir(const char *path)
+{
+  char *dirc, *basec, *bname, *dname;
+  inode_t *idir, *inode;
+  dir_entry_t *de;
+
+  DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_rmdir(path = %s)\n", path);
+
+  dirc = strdup(path);
+  basec = strdup(path);
+
+  dname = dirname(dirc);
+  bname = basename(basec);
+
+  idir = namei(dev, sb, dname);
+  if (!idir)
+    {
+      free(dirc);
+      free(basec);
+
+      return -1;
+    }
+
+  de = get_dir_entry_by_name(dev, sb, idir, bname);
+  if (!de)
+    {
+      free(idir);
+      free(dirc);
+      free(basec);
+
+      return -1;
+    }
+
+  inode = iget(dev, sb, de->inode);
+  if (!inode)
+    {
+      free(de);
+      free(idir);
+      free(dirc);
+      free(basec);
+
+      return -1;
+    }
+
+  if (!can_write_p(inode))
+    {
+      free(inode);
+      free(de);
+      free(idir);
+      free(dirc);
+      free(basec);
+
+      return -EACCES;
+    }
+
+  /* ¡Si el directorio no está vacío, no se puede borrar! */
+  if (inode->size > 2*sizeof(struct dir_entry))
+    {
+      free(inode);
+      free(de);
+      free(idir);
+      free(dirc);
+      free(basec);
+
+      return -ENOTEMPTY;
+    }
+
+  if (del_dir_entry_by_name(dev, sb, idir, bname) < 0)
+    {
+      free(inode);
+      free(de);
+      free(idir);
+      free(dirc);
+      free(basec);
+
+      return -1;
+    }
+
+  idir->link_counter--;
+  iput(dev, sb, idir);
+
+  free(idir);
+  free(dirc);
+  free(basec);
+
+
+  inode->link_counter--;
+  iput(dev, sb, inode);
+
+  if (inode->link_counter == 0)
+    {
+      ifree(dev, sb, inode);
+    }
+
+  superblock_write(dev, sb);
+
+  free(inode);
+  free(de);
+
+  return 0;
+}
+
 static int gnordofs_truncate(const char *path, off_t size)
 {
   char *p;
@@ -596,6 +698,7 @@ static struct fuse_operations oper = {
   .read		= gnordofs_read,
   .readdir	= gnordofs_readdir,
   .release      = gnordofs_release,
+  .rmdir        = gnordofs_rmdir,
   .truncate     = gnordofs_truncate,
   .unlink       = gnordofs_unlink,
   .write        = gnordofs_write
