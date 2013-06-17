@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-17 15:29:03 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 16:02:59 holzplatten"
  *
  *       File:         gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -108,7 +108,40 @@ static int gnordofs_chmod(const char *path, mode_t mode)
   else if (can_write_p(inode))
     {
       inode->perms = mode;
-      inode->mtime = time(NULL);
+      inode->ctime = time(NULL);
+      iput(dev, sb, inode);
+      free(inode);
+    }
+  else
+    {
+      res = -EACCES;
+      free(inode);
+    }
+
+  free(p);
+
+  return res;
+}
+
+static int gnordofs_chown(const char *path, uid_t uid, gid_t gid)
+{
+  inode_t *inode;
+  char *p;
+  int res = 0;
+
+  DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_chown(path = %s, uid = %d, gid = %d)\n", path, uid, gid);
+
+  p = strdup(path);
+  inode = namei(dev, sb, p);
+  if (!inode)
+    {
+      res = -ENOENT;
+    }
+  else if (can_write_p(inode))
+    {
+      inode->owner = uid;
+      inode->group = gid;
+      inode->ctime = time(NULL);
       iput(dev, sb, inode);
       free(inode);
     }
@@ -139,21 +172,13 @@ static int gnordofs_getattr(const char *path, struct stat *stbuf)
     }
   else
     {
-      if (inode->type == I_DIR)
+      if (inode->type == I_DIR || inode->type == I_FILE)
         {
           stbuf->st_nlink = inode->link_counter;
           stbuf->st_size = inode->size;
 
-          stbuf->st_atime = inode->atime;
-          stbuf->st_ctime = inode->ctime;
-          stbuf->st_mtime = inode->mtime;
-
-          stbuf->st_mode = inode->perms;
-        }
-      else if (inode->type == I_FILE)
-        {
-          stbuf->st_nlink = inode->link_counter;
-          stbuf->st_size = inode->size;
+          stbuf->st_uid = inode->owner;
+          stbuf->st_gid = inode->group;
 
           stbuf->st_atime = inode->atime;
           stbuf->st_ctime = inode->ctime;
@@ -177,6 +202,7 @@ static int gnordofs_mkdir(const char *path, mode_t mode)
   inode_t *inode, *iparent;
   int i;
   char *dirc, *basec, *dname, *bname;
+  struct fuse_context * ctxt = fuse_get_context();
 
   DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_mkdir(path = %s, mode = %o)\n", path, mode);
 
@@ -213,6 +239,8 @@ static int gnordofs_mkdir(const char *path, mode_t mode)
 
   inode->type = I_DIR;
   inode->perms = S_IFDIR | mode;
+  inode->owner = ctxt->uid;
+  inode->group = ctxt->gid;
   /* Entrada . */
   if (add_dir_entry(dev, sb, inode, inode, ".")  != 0)
     {
@@ -248,6 +276,7 @@ static int gnordofs_mknod(const char *path,
   inode_t *inode, *iparent;
   int i;
   char *dirc, *basec, *dname, *bname;
+  struct fuse_context * ctxt = fuse_get_context();
 
   DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_mknod(path = %s)\n", path);
 
@@ -284,6 +313,8 @@ static int gnordofs_mknod(const char *path,
 
   inode->type = I_FILE;
   inode->perms = mode;
+  inode->owner = ctxt->uid;
+  inode->group = ctxt->gid;
   inode->atime = inode->ctime = inode->mtime = time(NULL);
   
   iput(dev, sb, inode);
@@ -696,6 +727,7 @@ static int gnordofs_write(const char *path, const char *buf, size_t size, off_t 
 static struct fuse_operations oper = {
   .access       = gnordofs_access,
   .chmod        = gnordofs_chmod,
+  .chown        = gnordofs_chown,
   .getattr	= gnordofs_getattr,
   .mkdir        = gnordofs_mkdir,
   .mknod        = gnordofs_mknod,
