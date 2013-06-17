@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-16 22:27:16 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 01:49:45 holzplatten"
  *
  *       File:         gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -49,13 +49,70 @@
 static int dev;
 static superblock_t *sb;
 
-static int gnordofs_truncate(const char *path, off_t size)
+static int gnordofs_access(const char *path,
+                           int mask)
 {
-  char *p;
-  int res;
   inode_t *inode;
+  char *p;
+  /* mode_t base_mask; */
+  struct fuse_context * ctxt;
 
-  DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_truncate(path = %s, size = %d)\n", path, size);
+  DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_access(path = %s, mask = %o)\n", path, mask);
+
+  p = strdup(path);
+  inode = namei(dev, sb, p);
+  if (!inode)
+    {
+      return -ENOENT;
+    }
+
+  ctxt = fuse_get_context();
+  if (ctxt->uid == 0)
+    {
+      free(inode);
+      return 0;
+    }
+
+  /* mode_t mode = pst->st_mode; */
+  /* mode_t base_mask = 0; */
+  /* if(pcxt->uid == pst->st_uid){ */
+  /*   base_mask = S_IRWXU; */
+  /* }else if(pcxt->gid == pst->st_gid){ */
+  /*   base_mask = S_IRWXG; */
+  /* }else{ */
+  /*   if(1 == is_uid_inculde_group(pcxt->uid, pst->st_gid)){ */
+  /*     base_mask = S_IRWXG; */
+  /*   }else{ */
+  /*     base_mask = S_IRWXO; */
+  /*   } */
+  /* } */
+  /* mode &= base_mask; */
+
+  if (mask & X_OK == X_OK)
+    if ((inode->perms & (S_IXUSR | S_IXGRP | S_IXOTH)) == 0)
+      return -EACCES;
+
+  if (mask & W_OK == W_OK)
+    if ((inode->perms & (S_IWUSR | S_IWGRP | S_IWOTH)) == 0)
+      return -EACCES;
+
+  if (mask & R_OK == R_OK)
+    if ((inode->perms & (S_IRUSR | S_IRGRP | S_IROTH)) == 0)
+      return -EACCES;
+
+  if (inode->perms == 0)
+    return -EACCES;
+
+  return 0;
+}
+
+static int gnordofs_chmod(const char *path, mode_t mode)
+{
+  inode_t *inode;
+  char *p;
+  int res = 0;
+
+  DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_chmod(path = %s, mode = %o)\n", path, mode);
 
   p = strdup(path);
   inode = namei(dev, sb, p);
@@ -63,13 +120,17 @@ static int gnordofs_truncate(const char *path, off_t size)
     {
       res = -ENOENT;
     }
+  else if (can_write_p(inode))
+    {
+      inode->perms = mode;
+      iput(dev, sb, inode);
+      free(inode);
+    }
   else
     {
-      inode->size = size;
-      iput(dev, sb, inode);
+      res = -EACCES;
+      free(inode);
     }
-
-  superblock_write(dev, sb);
 
   free(p);
 
@@ -94,15 +155,15 @@ static int gnordofs_getattr(const char *path, struct stat *stbuf)
     {
       if (inode->type == I_DIR)
         {
-          stbuf->st_mode = S_IFDIR | 0755;
           stbuf->st_nlink = inode->link_counter;
           stbuf->st_size = inode->size;
+          stbuf->st_mode = inode->perms;
         }
       else if (inode->type == I_FILE)
         {
-          stbuf->st_mode = S_IFREG | 0644;
           stbuf->st_nlink = inode->link_counter;
           stbuf->st_size = inode->size;
+          stbuf->st_mode = inode->perms;
         }
       else
         {
@@ -115,60 +176,8 @@ static int gnordofs_getattr(const char *path, struct stat *stbuf)
   return res;
 }
 
-static int gnordofs_access(const char *path,
-                           int mask __attribute__((unused)))
-{
-  /* No hay permisos por ahora. Ancha es Castilla. */
-  return 0;
-}
-
-static int gnordofs_readdir(const char *path,
-                            void *buf,
-                            fuse_fill_dir_t filler,
-                            off_t offset __attribute__((unused)),
-                            struct fuse_file_info *fi __attribute__((unused)))
-{
-  inode_t *inode;
-  dir_entry_t *de;
-  int i;
-  char *p;
-
-  DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_readdir(path = %s)\n", path);
-
-  /* La primera versión de readdir tan sólo soporta el /. */
-  if (strcmp(path, "/") != 0)
-    return -ENOENT;
-
-  p = strdup(path);
-  inode = namei(dev, sb, p);
-  free(p);
-  
-  i=1;
-  de = get_dir_entry(dev, sb, inode, 0);
-  if (!de)
-    return -1;
-
-  while (de->inode != -1)
-    {
-      struct stat status;
-
-      status.st_ino = de->inode;
-      status.st_mode = 0777;
-
-      filler(buf, de->name, &status, 0);
-      free(de);
-
-      de = get_dir_entry(dev, sb, inode, i++);
-      if (!de)
-        return -1;
-    }
-  free(de);
-
-  return 0;
-}
-
 static int gnordofs_mknod(const char *path,
-                          mode_t mode __attribute__((unused)),
+                          mode_t mode,
                           dev_t inputdev __attribute__((unused)))
 {
   inode_t *inode, *iparent;
@@ -209,6 +218,7 @@ static int gnordofs_mknod(const char *path,
     }
 
   inode->type = I_FILE;
+  inode->perms = mode;
   iput(dev, sb, inode);
   DEBUG_VERBOSE("mknod -> (%d) %s\n", inode->n, bname);
   
@@ -226,12 +236,6 @@ static int gnordofs_open(const char *path, struct fuse_file_info *fi)
   return 0;
 }
 
-static int gnordofs_release(const char *path, struct fuse_file_info *fi)
-{
-  DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_release(path = %s)\n", path);
-  return 0;
-}
-
 static int gnordofs_read(const char *path, char *buf, size_t size, off_t offset,
                          struct fuse_file_info *fi __attribute__((unused)))
 {
@@ -246,6 +250,13 @@ static int gnordofs_read(const char *path, char *buf, size_t size, off_t offset,
   inode = namei(dev, sb, p);
   if (!inode)
     return -1;
+
+  if (!can_read_p(inode))
+    {
+      free(inode);
+      free(p);
+      return -EACCES;
+    }
 
   free(p);
 
@@ -266,6 +277,102 @@ static int gnordofs_read(const char *path, char *buf, size_t size, off_t offset,
   free(inode);
 
   return count;
+}
+
+static int gnordofs_readdir(const char *path,
+                            void *buf,
+                            fuse_fill_dir_t filler,
+                            off_t offset __attribute__((unused)),
+                            struct fuse_file_info *fi __attribute__((unused)))
+{
+  inode_t *inode;
+  dir_entry_t *de;
+  int i;
+  char *p;
+
+  DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_readdir(path = %s)\n", path);
+
+  /* La primera versión de readdir tan sólo soporta el /. */
+  if (strcmp(path, "/") != 0)
+    return -ENOENT;
+
+  p = strdup(path);
+  inode = namei(dev, sb, p);
+  if (!inode)
+    {
+      free(p);
+      return -1;
+    }
+
+  if (!can_read_p(inode))
+    {
+      free(inode);
+      free(p);
+      return -EACCES;
+    }
+
+  free(p);
+  
+  i=1;
+  de = get_dir_entry(dev, sb, inode, 0);
+  if (!de)
+    return -1;
+
+  while (de->inode != -1)
+    {
+      struct stat status;
+
+      status.st_ino = de->inode;
+      status.st_mode = 0777;
+
+      filler(buf, de->name, &status, 0);
+      free(de);
+
+      de = get_dir_entry(dev, sb, inode, i++);
+      if (!de)
+        return -1;
+    }
+  free(de);
+
+  return 0;
+}
+
+static int gnordofs_release(const char *path, struct fuse_file_info *fi)
+{
+  DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_release(path = %s)\n", path);
+  return 0;
+}
+
+static int gnordofs_truncate(const char *path, off_t size)
+{
+  char *p;
+  inode_t *inode;
+
+  DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_truncate(path = %s, size = %d)\n", path, size);
+
+  p = strdup(path);
+  inode = namei(dev, sb, p);
+  if (!inode)
+    {
+      free(p);
+      return -ENOENT;
+    }
+
+  if (!can_write_p(inode))
+    {
+      free(inode);
+      free(p);
+      return -EACCES;
+    }
+
+  inode->size = size;
+  iput(dev, sb, inode);
+
+  superblock_write(dev, sb);
+
+  free(p);
+
+  return 0;
 }
 
 static int gnordofs_unlink(const char *path)
@@ -301,8 +408,32 @@ static int gnordofs_unlink(const char *path)
       return -1;
     }
 
+  inode = iget(dev, sb, de->inode);
+  if (!inode)
+    {
+      free(de);
+      free(idir);
+      free(dirc);
+      free(basec);
+
+      return -1;
+    }
+
+  if (!can_write_p(inode))
+    {
+      free(inode);
+      free(de);
+      free(idir);
+      free(dirc);
+      free(basec);
+
+      return -EACCES;
+    }
+
+
   if (del_dir_entry_by_name(dev, sb, idir, bname) < 0)
     {
+      free(inode);
       free(de);
       free(idir);
       free(dirc);
@@ -317,12 +448,6 @@ static int gnordofs_unlink(const char *path)
   free(dirc);
   free(basec);
 
-  inode = iget(dev, sb, de->inode);
-  if (!inode)
-    {
-      free(de);
-      return -1;
-    }
 
   inode->link_counter--;
   iput(dev, sb, inode);
@@ -354,7 +479,17 @@ static int gnordofs_write(const char *path, const char *buf, size_t size, off_t 
 
   inode = namei(dev, sb, p);
   if (!inode)
-    return -1;
+    {
+      free(p);
+      return -1;
+    }
+
+  if (!can_write_p(inode))
+    {
+      free(inode);
+      free(p);
+      return -EACCES;
+    }
 
   free(p);
 
@@ -378,13 +513,13 @@ static int gnordofs_write(const char *path, const char *buf, size_t size, off_t 
 
 static struct fuse_operations oper = {
   .access       = gnordofs_access,
+  .chmod        = gnordofs_chmod,
   .getattr	= gnordofs_getattr,
   .mknod        = gnordofs_mknod,
   .open		= gnordofs_open,
   .read		= gnordofs_read,
   .readdir	= gnordofs_readdir,
   .release      = gnordofs_release,
-  //  .setattr      = gnordofs_setattr,
   .truncate     = gnordofs_truncate,
   .unlink       = gnordofs_unlink,
   .write        = gnordofs_write

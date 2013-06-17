@@ -40,7 +40,7 @@ typedef enum {
   unsigned owner;                                                  \
   unsigned group;                                                  \
                                                                    \
-  char perms;                                                      \
+  unsigned perms;                                                  \
                                                                    \
   int direct_blocks[10];
 

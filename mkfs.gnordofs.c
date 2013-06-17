@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-16 19:53:03 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 00:17:57 holzplatten"
  *
  *       File:         mkfs.gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -94,6 +94,7 @@ int main(int argc, char **argv)
   rootdir = ialloc(dev, sb);
   // Modificar rootdir con entradas . y ..
   rootdir->type = I_DIR;
+  rootdir->perms = S_IFDIR | 0755;
   add_dir_entry(dev, sb, rootdir, rootdir, ".");
   add_dir_entry(dev, sb, rootdir, rootdir, "..");
   iput(dev, sb, rootdir);
