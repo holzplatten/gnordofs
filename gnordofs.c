@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-17 11:48:19 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 12:16:28 holzplatten"
  *
  *       File:         gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include <dir.h>
 #include <fs.h>
@@ -107,6 +108,7 @@ static int gnordofs_chmod(const char *path, mode_t mode)
   else if (can_write_p(inode))
     {
       inode->perms = mode;
+      inode->mtime = time(NULL);
       iput(dev, sb, inode);
       free(inode);
     }
@@ -141,12 +143,22 @@ static int gnordofs_getattr(const char *path, struct stat *stbuf)
         {
           stbuf->st_nlink = inode->link_counter;
           stbuf->st_size = inode->size;
+
+          stbuf->st_atime = inode->atime;
+          stbuf->st_ctime = inode->ctime;
+          stbuf->st_mtime = inode->mtime;
+
           stbuf->st_mode = inode->perms;
         }
       else if (inode->type == I_FILE)
         {
           stbuf->st_nlink = inode->link_counter;
           stbuf->st_size = inode->size;
+
+          stbuf->st_atime = inode->atime;
+          stbuf->st_ctime = inode->ctime;
+          stbuf->st_mtime = inode->mtime;
+
           stbuf->st_mode = inode->perms;
         }
       else
@@ -203,6 +215,8 @@ static int gnordofs_mknod(const char *path,
 
   inode->type = I_FILE;
   inode->perms = mode;
+  inode->atime = inode->ctime = inode->mtime = time(NULL);
+  
   iput(dev, sb, inode);
   DEBUG_VERBOSE("mknod -> (%d) %s\n", inode->n, bname);
   
@@ -256,7 +270,8 @@ static int gnordofs_read(const char *path, char *buf, size_t size, off_t offset,
   do_lseek(dev, sb, inode, offset, SEEK_SET);
   count = do_read(dev, sb, inode, buf, size);
 
-  superblock_write(dev, sb);
+  inode->atime = time(NULL);
+  iput(dev, sb, inode);
 
   free(inode);
 
@@ -316,7 +331,12 @@ static int gnordofs_readdir(const char *path,
       if (!de)
         return -1;
     }
+
+  inode->atime = time(NULL);
+  iput(dev, sb, inode);
+
   free(de);
+  free(inode);
 
   return 0;
 }
@@ -356,6 +376,7 @@ static int gnordofs_truncate(const char *path, off_t size)
       return -1;
     }
 
+  inode->mtime = time(NULL);
   iput(dev, sb, inode);
   superblock_write(dev, sb);
 

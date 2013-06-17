@@ -37,6 +37,10 @@ typedef enum {
   unsigned size;                                                   \
   unsigned link_counter;                                           \
                                                                    \
+  time_t atime;                                                    \
+  time_t ctime;                                                    \
+  time_t mtime;                                                    \
+                                                                   \
   unsigned owner;                                                  \
   unsigned group;                                                  \
                                                                    \

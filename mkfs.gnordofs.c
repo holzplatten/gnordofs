@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-17 00:17:57 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 12:13:38 holzplatten"
  *
  *       File:         mkfs.gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+#include <time.h>
 
 #include <dir.h>
 #include <inode.h>
@@ -97,6 +98,7 @@ int main(int argc, char **argv)
   rootdir->perms = S_IFDIR | 0755;
   add_dir_entry(dev, sb, rootdir, rootdir, ".");
   add_dir_entry(dev, sb, rootdir, rootdir, "..");
+  rootdir->atime = rootdir->ctime = rootdir->mtime = time(NULL);
   iput(dev, sb, rootdir);
 
   sb->first_inode = rootdir->n;
