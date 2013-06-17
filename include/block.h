@@ -23,17 +23,19 @@
 
 #include <superblock.h>
 
+#define BLOCK_SIZE 1024
+
 struct block
 {
-  unsigned char data[1024];
+  unsigned char data[BLOCK_SIZE];
 };
 
 typedef struct block block_t;
 
-int allocblk(int dev, superblock_t * const sb);
-block_t * getblk(int dev, superblock_t *sb, int n);
-int writeblk(int dev, superblock_t *sb, int n, block_t *datablock);
-int freeblk(int dev, superblock_t * const sb, int block);
+long allocblk(int dev, superblock_t * const sb);
+block_t * getblk(int dev, superblock_t *sb, long n);
+int writeblk(int dev, superblock_t *sb, long n, block_t *datablock);
+int freeblk(int dev, superblock_t * const sb, long block);
 
 int free_block_list_init(int fd, const superblock_t * const sb);
 

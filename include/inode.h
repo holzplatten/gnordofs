@@ -32,6 +32,9 @@ typedef enum {
   I_DIR
 } itype_t;
 
+#define N_DIRECT_BLOCKS 10
+#define N_SINGLE_INDIRECT_BLOCKS (sizeof(struct block) / sizeof(long))
+
 #define INODE_PERSISTENT_DATA                                      \
   itype_t type;                                                    \
   unsigned size;                                                   \
@@ -46,10 +49,10 @@ typedef enum {
                                                                    \
   unsigned perms;                                                  \
                                                                    \
-  long direct_blocks[10];                                          \
+  long direct_blocks[N_DIRECT_BLOCKS];                             \
   long single_indirect_blocks;
 
-#define BLOCKS_PER_INODE (10 + 0*(sizeof(struct block) / sizeof(long)))
+#define BLOCKS_PER_INODE (N_DIRECT_BLOCKS + 1*N_SINGLE_INDIRECT_BLOCKS)
 
 struct inode {
   INODE_PERSISTENT_DATA
@@ -65,10 +68,12 @@ inode_t * iget(int dev, const superblock_t * const sb, int n);
 inode_t * ialloc(int dev, superblock_t * const sb);
 int iput(int dev, const superblock_t * const sb, inode_t * inode);
 
-int inode_getblk(inode_t * inode, int blk);
-int inode_allocblk(int dev, superblock_t * const sb,
-                   inode_t * inode, int blk);
-int inode_freeblk(inode_t * inode, int blk);
+long inode_getblk(int dev, superblock_t * const sb,
+                  inode_t * inode, long blk);
+long inode_allocblk(int dev, superblock_t * const sb,
+                    inode_t * inode, long blk);
+int inode_freeblk(int dev, superblock_t * const sb,
+                  inode_t * inode, long blk);
 int inode_truncate(int dev, superblock_t * const sb, inode_t *inode, int size);
 
 int inode_list_init(int fd, const superblock_t * const sb);

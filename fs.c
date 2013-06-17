@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-16 19:17:40 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 17:00:15 holzplatten"
  *
  *       File:         fs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -58,8 +58,8 @@ do_read(int dev, superblock_t *sb, inode_t *inode,
   int old_blk = -1;
   struct block * datablock = NULL;
   int count=0;
-  int blk, byte;
-  int absolute_blk;
+  int byte;
+  long blk, absolute_blk;
 
   while (n>0)
     {
@@ -69,7 +69,7 @@ do_read(int dev, superblock_t *sb, inode_t *inode,
       byte = inode->offset_ptr % sizeof(struct block);
 
       /* Calcular bloque absoluto (todo el fs). */
-      absolute_blk = inode_getblk(inode, blk);
+      absolute_blk = inode_getblk(dev, sb, inode, blk);
       if (absolute_blk == -1)
         return -1;
       
@@ -185,7 +185,7 @@ do_write(int dev, superblock_t *sb, inode_t *inode,
       /* DEBUG_VERBOSE(">> do_write >> blk = %d, offset = %d\n", blk, byte); */
 
       /* Calcular bloque absoluto (todo el fs). */
-      absolute_blk = inode_getblk(inode, blk);
+      absolute_blk = inode_getblk(dev, sb, inode, blk);
       if (absolute_blk == -1)
         return -1;
       /* DEBUG_VERBOSE(">> do_write >> absolute_blk = %d\n", absolute_blk); */

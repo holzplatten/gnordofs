@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-17 14:19:17 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 17:14:48 holzplatten"
  *
  *       File:         block.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -53,7 +53,7 @@
  *              -1 on error.
  *
  */
-int
+long
 allocblk(int dev, superblock_t * const sb)
 {
   block_t * buff;
@@ -97,7 +97,7 @@ allocblk(int dev, superblock_t * const sb)
  *
  */
 int
-freeblk(int dev, superblock_t * const sb, int block)
+freeblk(int dev, superblock_t * const sb, long block)
 {
   block_t buff;
 
@@ -139,7 +139,7 @@ freeblk(int dev, superblock_t * const sb, int block)
  *
  */
 block_t *
-getblk(int dev, superblock_t *sb, int n)
+getblk(int dev, superblock_t *sb, long n)
 {
   int offset;
   block_t *datablock;
@@ -185,7 +185,7 @@ getblk(int dev, superblock_t *sb, int n)
  *
  */
 int
-writeblk(int dev, superblock_t *sb, int n, block_t *datablock)
+writeblk(int dev, superblock_t *sb, long n, block_t *datablock)
 {
   int offset;
 

@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-17 13:45:06 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 18:13:26 holzplatten"
  *
  *       File:         mkfs.gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
       printf("Dude, WTF???\n");
       exit(1);
     }
-  zeros = malloc(1024);
+  zeros = malloc(BLOCK_SIZE);
   memset(zeros, 0, sizeof(zeros));
   for (i=sb->block_zone_base;
        i < size - sizeof(zeros);

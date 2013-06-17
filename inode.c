@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-17 11:42:58 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 17:53:10 holzplatten"
  *
  *       File:         inode.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -33,6 +33,7 @@
 #include <string.h>
 #include <syslog.h>
 
+#include <block.h>
 #include <dir.h>
 #include <inode.h>
 #include <misc.h>
@@ -310,6 +311,7 @@ ialloc(int dev, superblock_t * const sb)
       /* Marcar como no asignados cada uno de los elementos de la lista de bloques. */
       for (i=0; i<10; i++)
         inode->direct_blocks[i] = BLK_UNASSIGNED;
+      inode->single_indirect_blocks = BLK_UNASSIGNED;
     }
 
   DEBUG_VERBOSE(">> ialloc >> inode = %d\n", inode->n);
@@ -344,11 +346,23 @@ ifree(int dev, superblock_t * const sb, inode_t *inode)
 
   DEBUG_VERBOSE(">> ifree(inode->n = %d)\n", inode->n);
 
-  for (i=0; i < 10; i++)
+  for (i=0; i < N_DIRECT_BLOCKS; i++)
     {
-      block = inode_getblk(inode, i);
+      block = inode_getblk(dev, sb, inode, i);
       if (!unassigned_p(block))
         freeblk(dev, sb, block);
+    }
+  if (!unassigned_p(inode->single_indirect_blocks))
+    {
+        for (i=N_DIRECT_BLOCKS;
+             i < N_DIRECT_BLOCKS+N_SINGLE_INDIRECT_BLOCKS;
+             i++)
+          {
+            block = inode_getblk(dev, sb, inode, i);
+            if (!unassigned_p(block))
+              freeblk(dev, sb, block);
+          }
+        freeblk(dev, sb, inode->single_indirect_blocks);
     }
 
   if (sb->free_inode_index == FREE_INODE_LIST_SIZE)
@@ -396,18 +410,37 @@ ifree(int dev, superblock_t * const sb, inode_t *inode)
  *              -1 on error
  *
  */
-int
-inode_getblk(inode_t *inode, int blk)
+long
+inode_getblk(int dev, superblock_t * const sb, inode_t *inode, long blk)
 {
+  block_t *block;
+  long ablk=-1;
+
   /* DEBUG_VERBOSE(">> inode_getblk(blk = %d)\n", blk); */
 
-  if (blk < 0)
+  if (blk < 0 || blk >= BLOCKS_PER_INODE)
     return -1;
 
-  if (blk < 10)
+  if (blk < N_DIRECT_BLOCKS)
     return inode->direct_blocks[blk];
 
-  return -1;
+  blk -= N_DIRECT_BLOCKS;
+  if (blk < N_SINGLE_INDIRECT_BLOCKS)
+    {
+      if (unassigned_p(inode->single_indirect_blocks))
+        return BLK_UNASSIGNED;
+
+      /* Leer bloque indirecto y sacar de él el bloque absoluto. */
+      block = getblk(dev, sb, inode->single_indirect_blocks);
+      if (block < 0)
+        return -1;
+
+      ablk = *(long *) &block->data[blk*sizeof(long)];
+
+      free(block);
+    }
+
+  return ablk;
 }
 
 
@@ -428,19 +461,63 @@ inode_getblk(inode_t *inode, int blk)
  *              -1 on error
  *
  */
-int
+long
 inode_allocblk(int dev, superblock_t * const sb,
-               inode_t * inode, int blk)
+               inode_t * inode, long blk)
 {
-  int ablk;
+  int i;
+  block_t *block;
+  long ablk, iblk;
 
-  if (blk < 0 | blk >= 10)
+  if (blk < 0 | blk >= BLOCKS_PER_INODE)
     return -1;
 
   ablk = allocblk(dev, sb);
 
-  if (blk < 10)
+  if (blk < N_DIRECT_BLOCKS)
     inode->direct_blocks[blk] = ablk;
+
+  blk -= N_DIRECT_BLOCKS;
+  if (blk < N_SINGLE_INDIRECT_BLOCKS)
+    {
+      /* Asignar bloque indirecto si no lo está. */
+      iblk = inode->single_indirect_blocks;
+      if (unassigned_p(iblk))
+        {
+          iblk = allocblk(dev, sb);
+          if (iblk < 0)
+            {
+              freeblk(dev, sb, ablk);
+              return -1;
+            }
+
+          /* Marcar todas las entradas del indirecto como BLK_UNASSIGNED. */
+          block = getblk(dev, sb, iblk);
+          if (block < 0)
+            {
+              freeblk(dev, sb, ablk);
+              freeblk(dev, sb, iblk);
+              return -1;
+            }
+          for (i=0; i<N_SINGLE_INDIRECT_BLOCKS; i++)
+            *(long *) &(block->data[i*sizeof(long)]) = BLK_UNASSIGNED;
+          /* ¡Y salvar el maldito iblk! (¡¬¬)*/
+          writeblk(dev, sb, iblk, block);
+
+          inode->single_indirect_blocks = iblk;
+        }
+
+      /* Leer bloque indirecto. */
+      block = getblk(dev, sb, iblk);
+      if (block < 0)
+        return -1;
+
+      /* Escribir nueva referencia en el bloque indirecto. */
+      *(long *) &(block->data[blk*sizeof(long)]) = ablk;
+      writeblk(dev, sb, iblk, block);
+
+      free(block);
+    }
 
   return ablk;
 }
@@ -461,20 +538,42 @@ inode_allocblk(int dev, superblock_t * const sb,
  *
  */
 int
-inode_freeblk(inode_t *inode, int blk)
+inode_freeblk(int dev, superblock_t * const sb, inode_t * inode, long blk)
 {
+  long iblk;
+  block_t *block;
+
   /* DEBUG_VERBOSE(">> inode_getblk(blk = %d)\n", blk); */
 
-  if (blk < 0)
+  if (blk < 0 || blk >= BLOCKS_PER_INODE)
     return -1;
 
-  if (blk < 10)
+  if (blk < N_DIRECT_BLOCKS)
     {
       if (unassigned_p(inode->direct_blocks[blk]))
         return -1;
 
       inode->direct_blocks[blk] = BLK_UNASSIGNED;
       return 0;
+    }
+
+  blk -= N_DIRECT_BLOCKS;
+  if (blk < N_SINGLE_INDIRECT_BLOCKS)
+    {
+      iblk = inode->single_indirect_blocks;
+      if (unassigned_p(iblk))
+        return -1;
+
+      /* Leer bloque indirecto. */
+      block = getblk(dev, sb, iblk);
+      if (block < 0)
+        return -1;
+
+      /* Escribir nueva referencia en el bloque indirecto. */
+      *(long *) &block->data[blk*sizeof(long)] = BLK_UNASSIGNED;
+      writeblk(dev, sb, iblk, block);
+
+      free(block);
     }
 
   return -1;
@@ -524,7 +623,7 @@ inode_truncate(int dev, superblock_t * const sb, inode_t *inode, int size)
   blk = size  ?  (size-1)/sizeof(struct block)  :  0;
   while (blk <= last_blk)
     {
-      absolute_blk = inode_getblk(inode, blk);
+      absolute_blk = inode_getblk(dev, sb, inode, blk);
       if (absolute_blk == -1)
         return -1;
 
@@ -533,7 +632,7 @@ inode_truncate(int dev, superblock_t * const sb, inode_t *inode, int size)
           if (freeblk(dev, sb, absolute_blk) < 0)
             return -1;
 
-          inode_freeblk(inode, blk);
+          inode_freeblk(dev, sb, inode, blk);
         }
 
       blk++;
@@ -562,7 +661,8 @@ inode_truncate(int dev, superblock_t * const sb, inode_t *inode, int size)
 int
 inode_list_init(int fd, const superblock_t * const sb)
 {
-  unsigned int i, last_inode;
+  int i;
+  unsigned long last_inode;
   inode_t idummy;
   
   lseek(fd, sb->inode_zone_base, SEEK_SET);
