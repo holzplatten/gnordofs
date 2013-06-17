@@ -56,10 +56,13 @@ typedef struct inode inode_t;
 inode_t * namei(int fd, superblock_t * const sb, char * path);
 inode_t * iget(int dev, const superblock_t * const sb, int n);
 inode_t * ialloc(int dev, superblock_t * const sb);
+int iput(int dev, const superblock_t * const sb, inode_t * inode);
 
 int inode_getblk(inode_t * inode, int blk);
 int inode_allocblk(int dev, superblock_t * const sb,
                    inode_t * inode, int blk);
+int inode_freeblk(inode_t * inode, int blk);
+int inode_truncate(int dev, superblock_t * const sb, inode_t *inode, int size);
 
 int inode_list_init(int fd, const superblock_t * const sb);
 

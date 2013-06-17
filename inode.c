@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-16 22:34:32 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 11:42:58 holzplatten"
  *
  *       File:         inode.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -445,6 +445,104 @@ inode_allocblk(int dev, superblock_t * const sb,
   return ablk;
 }
 
+
+
+
+/*-
+ *      Routine:       inode_freeblk
+ *
+ *      Purpose:
+ *              Desasigna un bloque de la lista de bloques de un inodo.
+ *      Conditions:
+ *              inode debe apuntar a un inodo válido.
+ *              blk debe ser un valor no negativo y dentro del rango permitido.
+ *      Returns:
+ *              -1 on error
+ *
+ */
+int
+inode_freeblk(inode_t *inode, int blk)
+{
+  /* DEBUG_VERBOSE(">> inode_getblk(blk = %d)\n", blk); */
+
+  if (blk < 0)
+    return -1;
+
+  if (blk < 10)
+    {
+      if (unassigned_p(inode->direct_blocks[blk]))
+        return -1;
+
+      inode->direct_blocks[blk] = BLK_UNASSIGNED;
+      return 0;
+    }
+
+  return -1;
+}
+
+
+
+
+/*-
+ *      Routine:       inode_truncate
+ *
+ *      Purpose:
+ *              Trunca un archivo a partir de su inodo.
+ *      Conditions:
+ *              dev debe corresponder a un gnordofs válido.
+ *              sb debe apuntar a un superbloque válido.
+ *              inode debe apuntar a un inodo válido.
+ *              size debe ser no-negativo.
+ *      Returns:
+ *              -1 on error.
+ *
+ */
+int
+inode_truncate(int dev, superblock_t * const sb, inode_t *inode, int size)
+{
+  int blk, last_blk;
+  int absolute_blk;
+
+  if (size < 0)
+    return -1;
+
+  /* Para truncar al alza, tan sólo hay que tocar el campo size del inodo. */
+  if (size >= inode->size)
+    {
+      if (size > inode->size)
+        inode->size = size;
+
+      return 0;
+    }
+
+  /* Para truncar de toda la vida, hay que liberar los bloques que quedan fuera
+     tras meter las tijeras. */
+
+  /* Calcular último bloque interno que hay que liberar. */
+  last_blk = (inode->size-1) / sizeof(struct block);
+  /* Calcular primer bloque interno que hay que liberar. */
+  blk = size  ?  (size-1)/sizeof(struct block)  :  0;
+  while (blk <= last_blk)
+    {
+      absolute_blk = inode_getblk(inode, blk);
+      if (absolute_blk == -1)
+        return -1;
+
+      if (!unassigned_p(absolute_blk))
+        {
+          if (freeblk(dev, sb, absolute_blk) < 0)
+            return -1;
+
+          inode_freeblk(inode, blk);
+        }
+
+      blk++;
+    }
+
+  inode->size = size;
+
+  return 0;
+}
 
 
 

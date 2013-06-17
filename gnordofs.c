@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-17 01:49:45 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 11:30:14 holzplatten"
  *
  *       File:         gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -365,9 +365,14 @@ static int gnordofs_truncate(const char *path, off_t size)
       return -EACCES;
     }
 
-  inode->size = size;
-  iput(dev, sb, inode);
+  if (inode_truncate(dev, sb, inode, size) < 0)
+    {
+      free(inode);
+      free(p);
+      return -1;
+    }
 
+  iput(dev, sb, inode);
   superblock_write(dev, sb);
 
   free(p);

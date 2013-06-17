@@ -33,7 +33,7 @@ typedef struct block block_t;
 int allocblk(int dev, superblock_t * const sb);
 block_t * getblk(int dev, superblock_t *sb, int n);
 int writeblk(int dev, superblock_t *sb, int n, block_t *datablock);
-
+int freeblk(int dev, superblock_t * const sb, int block);
 
 int free_block_list_init(int fd, const superblock_t * const sb);
 
