@@ -23,7 +23,7 @@
 
 #include <superblock.h>
 
-#define BLOCK_SIZE 1024
+#define BLOCK_SIZE 4096
 
 struct block
 {

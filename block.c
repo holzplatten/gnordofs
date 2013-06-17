@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-17 17:14:48 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 18:42:30 holzplatten"
  *
  *       File:         block.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -108,7 +108,7 @@ freeblk(int dev, superblock_t * const sb, long block)
   if (sb->free_block_index == FREE_BLOCK_LIST_SIZE)
     {
       memset(&buff, 0, sizeof(block_t));
-      memcpy(sb->free_block_list, &buff, FREE_BLOCK_LIST_SIZE*sizeof(unsigned long));
+      memcpy(&buff, sb->free_block_list, FREE_BLOCK_LIST_SIZE*sizeof(unsigned long));
 
       if (writeblk(dev, sb, block, &buff) < 0)
         return -1;
