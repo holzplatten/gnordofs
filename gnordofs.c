@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-17 14:54:44 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 15:29:03 holzplatten"
  *
  *       File:         gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -672,10 +672,15 @@ static int gnordofs_write(const char *path, const char *buf, size_t size, off_t 
 
   do_lseek(dev, sb, inode, offset, SEEK_SET);
   count = do_write(dev, sb, inode, buf, size);
+  if (count < 0)
+    {
+      free(inode);
+      return -ENOSPC;
+    }
 
   /* Actualizar campo de tamaño si es necesario. */
-  if (offset + size > inode->size)
-    inode->size = offset + size;
+  if (offset + count > inode->size)
+    inode->size = offset + count;
 
   iput(dev, sb, inode);
   superblock_write(dev, sb);
