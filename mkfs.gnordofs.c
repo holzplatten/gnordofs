@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-17 12:13:38 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 12:20:02 holzplatten"
  *
  *       File:         mkfs.gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -52,7 +52,7 @@ int main(int argc, char **argv)
   // Size = 10Mib
   size = 1024*1024*10;
 
-  dev = open("bogniga.img", O_RDWR | O_CREAT, 0666);
+  dev = open("gnordofs.img", O_RDWR | O_CREAT, 0666);
   if (dev < 0)
     {
       perror(NULL);

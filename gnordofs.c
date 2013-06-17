@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-17 12:16:28 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 12:20:28 holzplatten"
  *
  *       File:         gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -545,7 +545,7 @@ int main(int argc, char *argv[])
   DEBUG("########################## GNORDOFS v0.0.1 beta #########################\n");
   DEBUG("#########################################################################\n");
 
-  dev = open("./bogniga.img", O_RDWR);
+  dev = open("./gnordofs.img", O_RDWR);
   sb = superblock_read(dev);
 
   return fuse_main(argc, argv, &oper, NULL);
