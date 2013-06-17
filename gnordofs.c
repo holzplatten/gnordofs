@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-17 11:30:14 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 11:48:19 holzplatten"
  *
  *       File:         gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -54,7 +54,6 @@ static int gnordofs_access(const char *path,
 {
   inode_t *inode;
   char *p;
-  /* mode_t base_mask; */
   struct fuse_context * ctxt;
 
   DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_access(path = %s, mask = %o)\n", path, mask);
@@ -72,21 +71,6 @@ static int gnordofs_access(const char *path,
       free(inode);
       return 0;
     }
-
-  /* mode_t mode = pst->st_mode; */
-  /* mode_t base_mask = 0; */
-  /* if(pcxt->uid == pst->st_uid){ */
-  /*   base_mask = S_IRWXU; */
-  /* }else if(pcxt->gid == pst->st_gid){ */
-  /*   base_mask = S_IRWXG; */
-  /* }else{ */
-  /*   if(1 == is_uid_inculde_group(pcxt->uid, pst->st_gid)){ */
-  /*     base_mask = S_IRWXG; */
-  /*   }else{ */
-  /*     base_mask = S_IRWXO; */
-  /*   } */
-  /* } */
-  /* mode &= base_mask; */
 
   if (mask & X_OK == X_OK)
     if ((inode->perms & (S_IXUSR | S_IXGRP | S_IXOTH)) == 0)
