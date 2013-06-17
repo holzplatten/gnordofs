@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-16 16:22:34 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 14:58:19 holzplatten"
  *
  *       File:         misc.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -42,11 +42,11 @@
   *      Conditions:
   *              none (por ahora)
   *      Returns:
-  *              Un entero (100 por ahora).
+  *              Un entero (1000 por ahora).
   *
   */
 unsigned long
 calculate_inode_count(unsigned long size)
 {
-  return (unsigned long) 100;
+  return (unsigned long) 1000;
 }
