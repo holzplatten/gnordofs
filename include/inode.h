@@ -46,9 +46,10 @@ typedef enum {
                                                                    \
   unsigned perms;                                                  \
                                                                    \
-  int direct_blocks[10];
+  long direct_blocks[10];                                          \
+  long single_indirect_blocks;
 
-#define BLOCKS_PER_INODE 10
+#define BLOCKS_PER_INODE (10 + 0*(sizeof(struct block) / sizeof(long)))
 
 struct inode {
   INODE_PERSISTENT_DATA
