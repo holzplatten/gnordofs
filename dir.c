@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-16 22:22:59 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 12:59:16 holzplatten"
  *
  *       File:         dir.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -85,6 +85,12 @@ add_dir_entry(int dev, superblock_t *sb, inode_t *dir_inode, inode_t *entry_inod
       /* Estoy completamente seguro de que NO quiero entradas con el mismo nombre. >:( */
       if (strcmp(de.name, entry_name) == 0)
         return -1;
+    }
+
+  if (i == DIR_MAX_ENTRIES)
+    {
+      DEBUG_VERBOSE(">> add_dir_entry >> Error: directorio lleno\n");
+      return -1;
     }
 
   DEBUG_VERBOSE(">> add_dir_entry >> i = %d\n", i);

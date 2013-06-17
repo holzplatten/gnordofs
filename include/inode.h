@@ -48,6 +48,8 @@ typedef enum {
                                                                    \
   int direct_blocks[10];
 
+#define BLOCKS_PER_INODE 10
+
 struct inode {
   INODE_PERSISTENT_DATA
   
