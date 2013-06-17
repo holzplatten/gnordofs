@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-17 12:20:28 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 13:25:36 holzplatten"
  *
  *       File:         gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -172,6 +172,75 @@ static int gnordofs_getattr(const char *path, struct stat *stbuf)
   return res;
 }
 
+static int gnordofs_mkdir(const char *path, mode_t mode)
+{
+  inode_t *inode, *iparent;
+  int i;
+  char *dirc, *basec, *dname, *bname;
+
+  DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_mkdir(path = %s, mode = %o)\n", path, mode);
+
+  dirc = strdup(path);
+  basec = strdup(path);
+
+  dname = dirname(dirc);
+  bname = basename(basec);
+
+  /* Reservar un nuevo inodo. */
+  inode = ialloc(dev, sb);
+  if (!inode)
+    {
+      free(dirc);
+      free(basec);
+      return -ENOMEM;
+    }
+
+  /* base_dir */
+  iparent = namei(dev, sb, dname);
+  if (!iparent)
+    {
+      free(dirc);
+      free(basec);
+      return -1;
+    }
+
+  if (add_dir_entry(dev, sb, iparent, inode, bname)  != 0)
+    {
+      free(dirc);
+      free(basec);
+      return -1;
+    }
+
+  inode->type = I_DIR;
+  inode->perms = S_IFDIR | mode;
+  /* Entrada . */
+  if (add_dir_entry(dev, sb, inode, inode, ".")  != 0)
+    {
+      free(dirc);
+      free(basec);
+      return -1;
+    }
+  /* Entrada . */
+  if (add_dir_entry(dev, sb, inode, iparent, "..")  != 0)
+    {
+      free(dirc);
+      free(basec);
+      return -1;
+    }
+  inode->atime = inode->ctime = inode->mtime = time(NULL);
+
+  iput(dev, sb, iparent);
+  iput(dev, sb, inode);
+  DEBUG_VERBOSE("mkdir -> (%d) %s\n", inode->n, bname);
+  
+  superblock_write(dev, sb);
+
+  free(dirc);
+  free(basec);
+
+  return 0;
+}
+
 static int gnordofs_mknod(const char *path,
                           mode_t mode,
                           dev_t inputdev __attribute__((unused)))
@@ -290,10 +359,6 @@ static int gnordofs_readdir(const char *path,
   char *p;
 
   DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gnordofs_readdir(path = %s)\n", path);
-
-  /* La primera versión de readdir tan sólo soporta el /. */
-  if (strcmp(path, "/") != 0)
-    return -ENOENT;
 
   p = strdup(path);
   inode = namei(dev, sb, p);
@@ -525,6 +590,7 @@ static struct fuse_operations oper = {
   .access       = gnordofs_access,
   .chmod        = gnordofs_chmod,
   .getattr	= gnordofs_getattr,
+  .mkdir        = gnordofs_mkdir,
   .mknod        = gnordofs_mknod,
   .open		= gnordofs_open,
   .read		= gnordofs_read,

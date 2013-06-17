@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-17 12:20:02 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 13:45:06 holzplatten"
  *
  *       File:         mkfs.gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -109,7 +109,7 @@ int main(int argc, char **argv)
   printf("rootdir->link_counter = %d\n", rootdir->link_counter);
   printf("rootdir->owner = %d\n", rootdir->owner);
   printf("rootdir->group = %d\n", rootdir->group);
-  printf("rootdir->perms = %d\n", rootdir->perms);
+  printf("rootdir->perms = %o\n", rootdir->perms);
   printf("rootdir->n = %d\n", rootdir->n);
   printf("rootdir->offset_ptr = %d\n", rootdir->offset_ptr);
 
@@ -122,7 +122,7 @@ int main(int argc, char **argv)
       exit(1);
     }
   superblock_print_dump(sb_dup);
-  //print_free_block_list(dev, sb);
+  print_free_block_list(dev, sb);
 
   free(sb);
   free(sb_dup);

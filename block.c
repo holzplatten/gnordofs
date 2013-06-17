@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-16 22:26:22 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-17 14:19:17 holzplatten"
  *
  *       File:         block.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -69,7 +69,7 @@ allocblk(int dev, superblock_t * const sb)
       if (!buff)
         return -1;
 
-      memcpy(sb->free_block_list, buff, sizeof(sb->free_block_list));
+      memcpy(sb->free_block_list, buff, FREE_BLOCK_LIST_SIZE*sizeof(unsigned long));
       sb->free_block_index = FREE_BLOCK_LIST_SIZE;
 
       free(buff);
@@ -115,10 +115,8 @@ freeblk(int dev, superblock_t * const sb, int block)
       
       sb->free_block_index = 0;
     }
-  else
-    {
-      sb->free_block_list[sb->free_block_index] = block;
-    }
+
+  sb->free_block_list[sb->free_block_index] = block;
 
   return 0;
 }
@@ -224,9 +222,9 @@ writeblk(int dev, superblock_t *sb, int n, block_t *datablock)
 int
 free_block_list_init(int fd, const superblock_t * const sb)
 {
-  unsigned int i, acc;
+  unsigned int i;
   unsigned int offset, block_count;
-  unsigned int sublist[FREE_BLOCK_LIST_SIZE];
+  unsigned long sublist[FREE_BLOCK_LIST_SIZE], acc;
 
   offset = sb->block_zone_base + sb->free_block_list[0] * sizeof(struct block);
 
@@ -274,7 +272,7 @@ print_free_block_list(int fd, const superblock_t * const sb)
   unsigned int i;
   unsigned int offset, block_count, next;
   unsigned int block_zone_base;
-  unsigned int sublist[FREE_BLOCK_LIST_SIZE];
+  unsigned long sublist[FREE_BLOCK_LIST_SIZE];
 
   block_zone_base = sb->block_zone_base;
 
