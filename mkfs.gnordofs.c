@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-17 18:13:26 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-06-20 10:00:38 holzplatten"
  *
  *       File:         mkfs.gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -71,14 +71,15 @@ int main(int argc, char **argv)
       exit(1);
     }
   zeros = malloc(BLOCK_SIZE);
-  memset(zeros, 0, sizeof(zeros));
+  memset(zeros, 0, BLOCK_SIZE);
   for (i=sb->block_zone_base;
-       i < size - sizeof(zeros);
-       i += sizeof(zeros))
+       i < size - BLOCK_SIZE;
+       i += BLOCK_SIZE)
     {
-      write(dev, zeros, sizeof(zeros));
+      write(dev, zeros, BLOCK_SIZE);
     }
-  write(dev, zeros, size - i);
+  if (size > i)
+    write(dev, zeros, size - i);
 
   /* Inicializar lista de bloques libres. */
   free_block_list_init(dev, sb);
