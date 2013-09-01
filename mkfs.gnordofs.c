@@ -1,4 +1,4 @@
-/* -*- mode: C -*- Time-stamp: "2013-06-20 10:00:38 holzplatten"
+/* -*- mode: C -*- Time-stamp: "2013-09-01 15:04:43 holzplatten"
  *
  *       File:         mkfs.gnordofs.c
  *       Author:       Pedro J. Ruiz Lopez (holzplatten@es.gnu.org)
@@ -24,7 +24,7 @@
   GNU General Public License for more details.
   
   You should have received a copy of the GNU General Public License
-  along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+  along with GnordoFS.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 
